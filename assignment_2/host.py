@@ -1,67 +1,103 @@
-from physical import physical_layer
-from link import link_layer
-from network import Network_layer
-from package import package
-from master import master
+from collections.abc import Sequence
 import weakref
 import math
 import logging
+from typing import Callable, List
+from assignment_2.message import Message 
 
-class host:
+class Host:
 
-	_instances = set()	#atribute protect to save all instances of host
+    _instances = set()	#atribute protect to save all instances of host
 
-	def __init__(self, mac, x, y, master, reach):	#delfaut constructor
-		self.physical = physical_layer(self)
-		self.link = link_layer(self)
-		self.network = Network_layer(self)
-		self.master = master
-		self.reach = reach
-		self.mac = mac
-		self.positionx = x
-		self.positiony = y
-		self._instances.add(weakref.ref(self))	
+    # message queue that the simulator can use to deposit messages into.
+    message_queue = []
+    
+    # Channel placeholder, will get registered by the simulator.
+    channels = {}
 
-	@classmethod	#to list all instances of host class
-	def get_instances(cls):
-		dead = set()
-		for ref in cls._instances:
-			obj = ref()
-			if obj is not None:
-				yield obj
-			else:
-				dead.add(ref)
-		cls._instances -= dead
+    # Algorithm used by to determine what to do with incoming messages and what to send.
+    # Takes an incoming message if available, a list of neighbors that can be contacted. 
+    algorithm: Callable[[Message, List[Host]], Message]
+    
+    def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Host]], Message]):	#default constructor
+        self.reach = reach
+        self.mac = mac
+        self.positionx = x
+        self.positiony = y
+        self._instances.add(weakref.ref(self))	
+        self.algorithm = algorithm
 
-	def send_message(self,message,destination):	#send the package to network layer
-		self.network.send_pck(message,destination)		
-		
+    @classmethod	#to list all instances of host class
+    def get_instances(cls):
+        dead = set()
+        for ref in cls._instances:
+            obj = ref()
+            if obj is not None:
+                yield obj
+            else:
+                dead.add(ref)
+        cls._instances -= dead
 
-	def is_reacheable(self,neighbor):	#check if neighbor host is reacheable
-		first_part = ((self.positionx - neighbor.positionx)**2)
-		second_part = ((self.positiony - neighbor.positiony)**2)
-		distance = math.sqrt(first_part + second_part)
-		
-		if distance == 0: 	# to not add itself on the neighbors list
-			return distance
-		else:
-			return distance <= self.reach #returns true if is reacheable
+        
+    # Evaluates a single round, checks if there is a message to handle else just go to the algorithm.
+    # Maybe it might be nice to give the algorithm a sense of the counter but that can be added later.
+    def evaluate_round(self, round_counter):
+        incoming_message: Message = None
+        
+        each: Message 
+        for  each in self.message_queue:
+            if each.end_time <= round_counter:
+                incoming_message = each
+                break
+                
+        return_message = self.algorithm(incoming_message, self.get_neighbors())
 
-	def get_neighbors(self):	#get all neighbors of a host
-		neighbors = []
-		for obj in host.get_instances():
-			if(self.is_reacheable(obj)):	#check if a node is reacheable
-				neighbors.append(obj)	#add to the list of neighbors
-		return neighbors #returns the list
+        # If we have a message to send lets do that now.
+        if return_message is not None: 
+            self.send_message(return_message)
 
-	def get_mac(self):	#returns the mac address
-		return self.mac 	
+        # Done with our round
+        return
+    
+    def send_message(self, message):
+        neighbors = self.get_neighbors()
 
-	def get_positionx(self):	#returns the first coordinate location
-		return self.positionx
+        # Dumps the messages in the channel of the neighbors.
+        for each in neighbors:
+            self.channels[each].append(message)
 
-	def get_positiony(self):	#returns the second coordinate location
-		return self.positiony
 
-	def get_reach(self):	#returns the reach
-		return self.reach
+    def is_reacheable(self,neighbor):	#check if neighbor host is reacheable
+        first_part = ((self.positionx - neighbor.positionx)**2)
+        second_part = ((self.positiony - neighbor.positiony)**2)
+        distance = math.sqrt(first_part + second_part)
+
+        if distance == 0: 	# to not add itself on the neighbors list
+            return distance
+        else:
+            return distance <= self.reach #returns true if is reacheable
+
+    def get_neighbors(self):	#get all neighbors of a host
+        neighbors = []
+        for obj in host.get_instances():
+            if(self.is_reacheable(obj)):	#check if a node is reacheable
+                neighbors.append(obj)	#add to the list of neighbors
+        return neighbors #returns the list
+
+    def get_mac(self):	#returns the mac address
+        return self.mac 	
+
+    def get_positionx(self):	#returns the first coordinate location
+        return self.positionx
+
+    def get_positiony(self):	#returns the second coordinate location
+        return self.positiony
+
+    def get_reach(self):	#returns the reach
+        return self.reach
+
+    def set_channels(self, channels):
+        self.channels = channels
+
+    def add_message_to_queue(self, message):
+        self.message_queue.append(message)
