@@ -1,7 +1,8 @@
 import sys
-from typing import List
+from typing import Dict, List
 
 from assignment_2.host import Host
+from assignment_2.message import Message
 
 class simulator:
 
@@ -12,7 +13,9 @@ class simulator:
     # This is an interesting one, this dictionary keeps track for all nodes if their sending channel is clear.
     # How it does this is done because every node that decides to transmit will add their transmission time window
     # to the dictionary of themselves and their neighbours. This way the nodes can check channel availability.
-    channels = {}
+    channels: Dict[Host, List[Message]] = {}
+
+    node_channel_counter: Dict[Host, int] = {}
 
     def __init__(self, nodes, timeout):
         self.nodes = nodes
@@ -38,8 +41,10 @@ class simulator:
             
             # Check if we can actually deliver messages
             for node in self.nodes:
-               # still requires implementation. 
-               node_channel = self.channels[node]
-            
+                node_channel = self.channels[node]
+                sorted(node_channel, key=lambda x: x.start_time)
+                # trick here is I think we should keep track of what start time we evaluated, 
+                # because we know for certain we cannot get new start time entries.
+
             self.counter = self.counter + 1
         print('Done simulating, ran for %d iterations' % self.counter)
