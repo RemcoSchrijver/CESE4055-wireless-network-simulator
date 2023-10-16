@@ -27,7 +27,7 @@ class simulator:
             return
         # Register channel dictionaries
         for node in self.nodes:
-            self.channels[node] = []
+            self.channels[node] = [] 
         
         # Pass the channel dictionary to all nodes
         for node in self.nodes:
@@ -43,7 +43,7 @@ class simulator:
             for node in self.nodes:
                 node_channel = self.channels[node]
                 sorted(node_channel, key=lambda x: x.start_time)
-                # Only deliver the message once self.counter > end_time of the message for the node.
+                # Only deliver the message once self.counter + 1 = end_time of the message for the node.
 
                 # trick here is I think we should keep track of what start time we evaluated, 
                 # because we know for certain we cannot get new start time entries.

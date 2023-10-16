@@ -17,9 +17,9 @@ class Host:
 
     # Algorithm used by to determine what to do with incoming messages and what to send.
     # Takes an incoming message if available, a list of neighbors that can be contacted. 
-    algorithm: Callable[[Message, List[Host]], Message]
+    algorithm: Callable[[Message, List[Host], int], Message]
     
-    def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Host]], Message]):	#default constructor
+    def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Host], int], Message]):	#default constructor
         self.reach = reach
         self.mac = mac
         self.positionx = x
@@ -47,7 +47,7 @@ class Host:
         if len(self.message_queue) > 0:
             incoming_message = self.message_queue.pop(0) 
 
-        return_message = self.algorithm(incoming_message, self.get_neighbors())
+        return_message = self.algorithm(incoming_message, self.get_neighbors(), round_counter)
 
         # If we have a message to send lets do that now.
         if return_message is not None: 
@@ -59,6 +59,7 @@ class Host:
     def send_message(self, message):
         neighbors = self.get_neighbors()
 
+        self.channels[self].append(message)
         # Dumps the messages in the channel of the neighbors.
         for each in neighbors:
             self.channels[each].append(message)
@@ -76,7 +77,7 @@ class Host:
 
     def get_neighbors(self):	#get all neighbors of a host
         neighbors = []
-        for obj in host.get_instances():
+        for obj in Host.get_instances():
             if(self.is_reacheable(obj)):	#check if a node is reacheable
                 neighbors.append(obj)	#add to the list of neighbors
         return neighbors #returns the list
