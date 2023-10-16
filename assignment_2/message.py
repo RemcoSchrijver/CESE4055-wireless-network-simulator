@@ -1,10 +1,13 @@
+from assignment_2.host import Host
+
+
 class Message:
 
-    source = None
-    destination = None
-    start_time = 0
-    end_time = 0
-    message = ""
+    source : Host 
+    destination : Host
+    start_time : int = 0
+    end_time : int = 0
+    message : str = ""
 
     def __init__(self, source, destination, start_time, end_time, message):
         self.source = source
