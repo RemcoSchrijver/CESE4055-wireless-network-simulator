@@ -43,6 +43,8 @@ class simulator:
             for node in self.nodes:
                 node_channel = self.channels[node]
                 sorted(node_channel, key=lambda x: x.start_time)
+                # Only deliver the message once self.counter > end_time of the message for the node.
+
                 # trick here is I think we should keep track of what start time we evaluated, 
                 # because we know for certain we cannot get new start time entries.
 

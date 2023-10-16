@@ -10,7 +10,7 @@ class Host:
     _instances = set()	#atribute protect to save all instances of host
 
     # message queue that the simulator can use to deposit messages into.
-    message_queue = []
+    message_queue : List[Message] = []
     
     # Channel placeholder, will get registered by the simulator.
     channels = {}
@@ -44,12 +44,9 @@ class Host:
     def evaluate_round(self, round_counter):
         incoming_message: Message = None
         
-        each: Message 
-        for  each in self.message_queue:
-            if each.end_time <= round_counter:
-                incoming_message = each
-                break
-                
+        if len(self.message_queue) > 0:
+            incoming_message = self.message_queue.pop(0) 
+
         return_message = self.algorithm(incoming_message, self.get_neighbors())
 
         # If we have a message to send lets do that now.
