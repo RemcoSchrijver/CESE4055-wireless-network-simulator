@@ -2,8 +2,8 @@ from collections.abc import Sequence
 import weakref
 import math
 import logging
-from typing import Callable, List
-from assignment_2.message import Message 
+from typing import Any, Callable, List
+from message import Message 
 
 class Host:
 
@@ -17,9 +17,9 @@ class Host:
 
     # Algorithm used by to determine what to do with incoming messages and what to send.
     # Takes an incoming message if available, a list of neighbors that can be contacted. 
-    algorithm: Callable[[Message, List[Host], int], Message]
+    algorithm: Callable[[Message, List[Any], int], Message]
     
-    def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Host], int], Message]):	#default constructor
+    def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Any], int], Message]):	#default constructor
         self.reach = reach
         self.mac = mac
         self.positionx = x

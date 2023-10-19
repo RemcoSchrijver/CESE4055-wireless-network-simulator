@@ -1,10 +1,8 @@
-from assignment_2.host import Host
-
 
 class Message:
 
-    source : Host 
-    destination : Host
+    source = None
+    destination = None
     start_time : int = 0
     end_time : int = 0
     message : str = ""
