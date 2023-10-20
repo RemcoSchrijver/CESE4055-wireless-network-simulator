@@ -1,4 +1,5 @@
 import sys
+import random
 from typing import Dict, List
 
 from host import Host
@@ -23,6 +24,7 @@ class simulator:
         self.timeout = timeout
 
     def begin_loop(self):
+
         print("Starting simulator...")
         if len(self.nodes) <= 0:
             print('No nodes registered so simulating nothing')
@@ -35,6 +37,8 @@ class simulator:
         for node in self.nodes:
             node.set_channels(self.channels)
 
+        self.create_random_messages()
+
         # Main loop to let nodes do their thing
         while self.counter < self.timeout:
             node: Host
@@ -44,13 +48,14 @@ class simulator:
             # Check if we can actually deliver messages
             for node in self.nodes:
                 node_channel = self.channels[node]
-                sorted(node_channel, key=lambda x: x.start_time)
+                sorted(node_channel, key=lambda x: x.end_time)
                 # Only deliver the message once self.counter + 1 = end_time of the message for the node.
-                message_to_deliver = [x for x in node_channel if x.end_time == self.counter + 1 and x.destination.mac == node.mac]
+                message_to_deliver = [x for x in node_channel if x.end_time == self.counter + 1 and x.destination == node.mac]
 
                 # We have multiple messages delivered at the same time, will be a collision
                 if len(message_to_deliver) > 1:
-                    self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + len(message_to_deliver)
+                    # self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + len(message_to_deliver)
+                    print("collision")
                     continue
 
                 if len(message_to_deliver) == 1:
@@ -59,12 +64,12 @@ class simulator:
 
                     earlier_messages = [x for x in node_channel if x.end_time <= message_start_time]
                     if len(earlier_messages) > 0:
-                        self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1 
+                        # self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1
                         continue
 
                     later_messages = [x for x in node_channel if x.start_time <= message_end_time]
                     if len(later_messages) > 0:
-                        self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1 
+                        # self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1
                         continue
 
                     # We don't have later messages that will go before or us, or messages that were trying to be delivered during us.
@@ -77,3 +82,25 @@ class simulator:
 
             self.counter = self.counter + 1
         print('Done simulating, ran for %d iterations' % self.counter)
+
+    def create_random_messages(self):
+        random.seed(10)
+        for node in self.nodes:
+            counter = 0
+            begin_random = 0
+            end_random = 20
+            neigbors = node.get_neighbors()
+            while counter < 20:
+                start_time = random.randint(begin_random, end_random)
+                end_time = start_time + 5
+
+                if len(neigbors) > 0:
+                    random_neigbour = random.randint(0, len(neigbors)-1)
+                    destination = neigbors[random_neigbour].mac
+                    message = Message(node.mac, destination, start_time, end_time, "hello")
+                    node.send_message(message)
+
+                begin_random = end_time
+                end_random = begin_random + 10
+                counter += 1
+
