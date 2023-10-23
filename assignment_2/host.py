@@ -18,6 +18,7 @@ class Host:
     # Algorithm used by to determine what to do with incoming messages and what to send.
     # Takes an incoming message if available, a list of neighbors that can be contacted. 
     # algorithm: Callable[[Message, List[Any], int], Message]
+    algorithm = None
 
     # def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Any], int], Message]):	#default constructor
     def __init__(self, mac: int, x: float, y: float, reach: float, algorithm):  # default constructor
@@ -47,8 +48,7 @@ class Host:
         if len(self.message_queue) > 0:
             incoming_message = self.message_queue.pop(0)
 
-        # return_message = self.algorithm.process_algorithm(self, incoming_message, round_counter)
-        return_message = None
+        return_message = self.algorithm.process_algorithm(self, round_counter, incoming_message)
 
         # If we have a message to send lets do that now.
         if return_message is not None:

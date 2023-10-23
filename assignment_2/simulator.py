@@ -37,7 +37,7 @@ class simulator:
         for node in self.nodes:
             node.set_channels(self.channels)
 
-        self.create_random_messages()
+        # self.create_random_messages()
 
         # Main loop to let nodes do their thing
         while self.counter < self.timeout:
@@ -83,24 +83,24 @@ class simulator:
             self.counter = self.counter + 1
         print('Done simulating, ran for %d iterations' % self.counter)
 
-    def create_random_messages(self):
-        random.seed(10)
-        for node in self.nodes:
-            counter = 0
-            begin_random = 0
-            end_random = 20
-            neigbors = node.get_neighbors()
-            while counter < 20:
-                start_time = random.randint(begin_random, end_random)
-                end_time = start_time + 5
-
-                if len(neigbors) > 0:
-                    random_neigbour = random.randint(0, len(neigbors)-1)
-                    destination = neigbors[random_neigbour].mac
-                    message = Message(node.mac, destination, start_time, end_time, "hello")
-                    node.send_message(message)
-
-                begin_random = end_time
-                end_random = begin_random + 10
-                counter += 1
+    # def create_random_messages(self):
+    #     random.seed(10)
+    #     for node in self.nodes:
+    #         counter = 0
+    #         begin_random = 0
+    #         end_random = 20
+    #         neigbors = node.get_neighbors()
+    #         while counter < 20:
+    #             start_time = random.randint(begin_random, end_random)
+    #             end_time = start_time + 5
+    #
+    #             if len(neigbors) > 0:
+    #                 random_neigbour = random.randint(0, len(neigbors)-1)
+    #                 destination = neigbors[random_neigbour].mac
+    #                 message = Message(node.mac, destination, start_time, end_time, "hello")
+    #                 node.send_message(message)
+    #
+    #             begin_random = end_time
+    #             end_random = begin_random + 10
+    #             counter += 1
 
