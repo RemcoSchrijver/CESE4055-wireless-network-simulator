@@ -21,7 +21,7 @@ class Host:
     algorithm = None
 
     # Metrics kept per host, can be customized if need be.
-    metrics : Dict = {"failed to deliver": 0, "successfully delivered": 0}
+    metrics : Dict = {"failed to deliver": 0, "successfully delivered": 0, "messages sent": 0}
 
     # def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Any], int], Message]):	#default constructor
     def __init__(self, mac: int, x: float, y: float, reach: float, algorithm):  # default constructor
@@ -55,6 +55,7 @@ class Host:
 
         # If we have a message to send lets do that now.
         if return_message is not None:
+            self.metrics["messages sent"] = self.metrics["messages sent"] + 1
             self.send_message(return_message)
 
         # Done with our round

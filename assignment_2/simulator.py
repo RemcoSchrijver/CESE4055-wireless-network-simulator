@@ -57,7 +57,6 @@ class simulator:
 
                 # We have multiple messages delivered at the same time, will be a collision
                 if len(message_to_deliver) > 1:
-                    print("Collided due to overlapping message for receiver")
                     node.metrics["failed to deliver"] = node.metrics["failed to deliver"] + len(message_to_deliver)
                     continue
 
@@ -68,10 +67,6 @@ class simulator:
                     blocking_messages = [x for x in node_channel if (x.end_time >= message_start_time and x.start_time <= message_end_time and x != message_to_deliver[0])]
                     if len(blocking_messages) > 0: 
                         node.metrics["failed to deliver"] = node.metrics["failed to deliver"] + 1
-                        print("messages collided beacuse of collision")
-                        print(f"Collided with {message_start_time} {message_end_time}")
-                        for each in blocking_messages:
-                            print(f"{each.start_time} {each.end_time}")
                         continue
 
                     # The message is not blocked by other messages 
