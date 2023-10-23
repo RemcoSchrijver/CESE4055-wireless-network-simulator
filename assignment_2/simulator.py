@@ -33,7 +33,6 @@ class simulator:
         # Register channel dictionaries and metric dictionaries
         for node in self.nodes:
             self.channels[node] = [] 
-            self.node_info_dict[node] = {"failed to deliver": 0, "successfully delivered": 0}
         # Pass the channel dictionary to all nodes
         for node in self.nodes:
             node.set_channels(self.channels)
@@ -58,31 +57,33 @@ class simulator:
 
                 # We have multiple messages delivered at the same time, will be a collision
                 if len(message_to_deliver) > 1:
-                    self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + len(message_to_deliver)
+                    print("Collided due to overlapping message for receiver")
+                    node.metrics["failed to deliver"] = node.metrics["failed to deliver"] + len(message_to_deliver)
                     continue
 
                 if len(message_to_deliver) == 1:
                     message_start_time = message_to_deliver[0].start_time
                     message_end_time = message_to_deliver[0].end_time
 
-                    earlier_messages = [x for x in node_channel if x.end_time <= message_start_time]
-                    if len(earlier_messages) > 0:
-                        self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1
+                    blocking_messages = [x for x in node_channel if (x.end_time >= message_start_time and x.start_time <= message_end_time and x != message_to_deliver[0])]
+                    if len(blocking_messages) > 0: 
+                        node.metrics["failed to deliver"] = node.metrics["failed to deliver"] + 1
+                        print("messages collided beacuse of collision")
+                        print(f"Collided with {message_start_time} {message_end_time}")
+                        for each in blocking_messages:
+                            print(f"{each.start_time} {each.end_time}")
                         continue
 
-                    later_messages = [x for x in node_channel if x.start_time <= message_end_time]
-                    if len(later_messages) > 0:
-                        self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1
-                        continue
-
-                    # We don't have later messages that will go before or us, or messages that were trying to be delivered during us.
+                    # The message is not blocked by other messages 
                     # So we can now actually deliver the message.
                     node.message_queue.append(message_to_deliver[0])
-                    self.node_info_dict[node]["successfully delivered"] = self.node_info_dict[node]["successfully delivered"] + 1
+                    node.metrics["successfully delivered"] = node.metrics["successfully delivered"] + 1
 
             self.counter = self.counter + 1
         print('Done simulating, ran for %d iterations' % self.counter)
 
     def print_results(self):
-        for node, values in self.node_info_dict.items():
-            print(f"Node {node.mac} has the following metrics: {str(values)}")
+        if len(self.nodes) > 0:
+            node : Host
+            for node in self.nodes: 
+                print(f"Node {node.mac} has the following metrics: {str(node.metrics)}")

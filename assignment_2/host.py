@@ -2,7 +2,7 @@ from collections.abc import Sequence
 import weakref
 import math
 import logging
-from typing import Any, Callable, List
+from typing import Any, Callable, Dict, List
 from message import Message
 
 
@@ -19,6 +19,9 @@ class Host:
     # Takes an incoming message if available, a list of neighbors that can be contacted. 
     # algorithm: Callable[[Message, List[Any], int], Message]
     algorithm = None
+
+    # Metrics kept per host, can be customized if need be.
+    metrics : Dict = {"failed to deliver": 0, "successfully delivered": 0}
 
     # def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Any], int], Message]):	#default constructor
     def __init__(self, mac: int, x: float, y: float, reach: float, algorithm):  # default constructor
