@@ -1,3 +1,4 @@
+import math
 import sys
 import random
 from typing import Dict, List
@@ -29,33 +30,35 @@ class simulator:
         if len(self.nodes) <= 0:
             print('No nodes registered so simulating nothing')
             return
-        # Register channel dictionaries
+        # Register channel dictionaries and metric dictionaries
         for node in self.nodes:
             self.channels[node] = [] 
-        
+            self.node_info_dict[node] = {"failed to deliver": 0, "successfully delivered": 0}
         # Pass the channel dictionary to all nodes
         for node in self.nodes:
             node.set_channels(self.channels)
 
-        # self.create_random_messages()
-
         # Main loop to let nodes do their thing
         while self.counter < self.timeout:
+            # Progress bar
+            if ((self.counter / self.timeout) * 100 - math.ceil((self.counter / self.timeout)) * 100) < 0.0001:
+                print(f"progress: {format((self.counter / self.timeout) * 100, '.2f')}\r", end="")
+
+
             node: Host
             for node in self.nodes:
                 node.evaluate_round(self.counter)
-            
-            # Check if we can actually deliver messages
+
+            # check if we can actually deliver messages
             for node in self.nodes:
                 node_channel = self.channels[node]
                 sorted(node_channel, key=lambda x: x.end_time)
-                # Only deliver the message once self.counter + 1 = end_time of the message for the node.
+                # only deliver the message once self.counter + 1 = end_time of the message for the node.
                 message_to_deliver = [x for x in node_channel if x.end_time == self.counter + 1 and x.destination == node.mac]
 
                 # We have multiple messages delivered at the same time, will be a collision
                 if len(message_to_deliver) > 1:
-                    # self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + len(message_to_deliver)
-                    print("collision")
+                    self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + len(message_to_deliver)
                     continue
 
                 if len(message_to_deliver) == 1:
@@ -64,43 +67,22 @@ class simulator:
 
                     earlier_messages = [x for x in node_channel if x.end_time <= message_start_time]
                     if len(earlier_messages) > 0:
-                        # self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1
+                        self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1
                         continue
 
                     later_messages = [x for x in node_channel if x.start_time <= message_end_time]
                     if len(later_messages) > 0:
-                        # self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1
+                        self.node_info_dict[node]["failed to deliver"] = self.node_info_dict[node]["failed to deliver"] + 1
                         continue
 
                     # We don't have later messages that will go before or us, or messages that were trying to be delivered during us.
                     # So we can now actually deliver the message.
                     node.message_queue.append(message_to_deliver[0])
-                        
-
-                # trick here is I think we should keep track of what start time we evaluated, 
-                # because we know for certain we cannot get new start time entries.
+                    self.node_info_dict[node]["successfully delivered"] = self.node_info_dict[node]["successfully delivered"] + 1
 
             self.counter = self.counter + 1
         print('Done simulating, ran for %d iterations' % self.counter)
 
-    # def create_random_messages(self):
-    #     random.seed(10)
-    #     for node in self.nodes:
-    #         counter = 0
-    #         begin_random = 0
-    #         end_random = 20
-    #         neigbors = node.get_neighbors()
-    #         while counter < 20:
-    #             start_time = random.randint(begin_random, end_random)
-    #             end_time = start_time + 5
-    #
-    #             if len(neigbors) > 0:
-    #                 random_neigbour = random.randint(0, len(neigbors)-1)
-    #                 destination = neigbors[random_neigbour].mac
-    #                 message = Message(node.mac, destination, start_time, end_time, "hello")
-    #                 node.send_message(message)
-    #
-    #             begin_random = end_time
-    #             end_random = begin_random + 10
-    #             counter += 1
-
+    def print_results(self):
+        for node, values in self.node_info_dict.items():
+            print(f"Node {node.mac} has the following metrics: {str(values)}")
