@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 
-from assignment_2.aloha_algorithm import Aloha
-from assignment_2.host import Host
+from aloha_algorithm import Aloha
+from host import Host
 from simulator import simulator
 
 
@@ -28,9 +28,11 @@ def main():
     # plt.show()
 
     # Simulator is started here with a large timeout 
-    sim = simulator(nodes, 10000)
+    sim = simulator(nodes, 1000)
 
     sim.begin_loop()
+
+    sim.print_results() 
 
 if __name__ == '__main__':
     main()

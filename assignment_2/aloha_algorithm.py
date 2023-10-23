@@ -1,5 +1,5 @@
-from assignment_2.host import Host
-from assignment_2.message import Message
+from host import Host
+from message import Message
 
 
 class Aloha:
