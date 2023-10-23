@@ -10,10 +10,10 @@ class Host:
     _instances = set()  # atribute protect to save all instances of host
 
     # message queue that the simulator can use to deposit messages into.
-    message_queue: List[Message] = []
+    message_queue: List[Message] 
 
     # Channel placeholder, will get registered by the simulator.
-    channels = {}
+    channels = None
 
     # Algorithm used by to determine what to do with incoming messages and what to send.
     # Takes an incoming message if available, a list of neighbors that can be contacted. 
@@ -21,7 +21,7 @@ class Host:
     algorithm = None
 
     # Metrics kept per host, can be customized if need be.
-    metrics : Dict = {"failed to deliver": 0, "successfully delivered": 0, "messages sent": 0}
+    metrics : Dict 
 
     # def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Any], int], Message]):	#default constructor
     def __init__(self, mac: int, x: float, y: float, reach: float, algorithm):  # default constructor
@@ -31,6 +31,9 @@ class Host:
         self.positiony = y
         self._instances.add(weakref.ref(self))
         self.algorithm = algorithm
+        self.metrics = {"failed to deliver": 0, "successfully delivered": 0, "messages sent": 0}
+        self.channels = {}
+        self.message_queue = []
 
     @classmethod  # to list all instances of host class
     def get_instances(cls):

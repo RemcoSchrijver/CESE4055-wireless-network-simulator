@@ -80,5 +80,5 @@ class simulator:
     def print_results(self):
         if len(self.nodes) > 0:
             node : Host
-            for node in self.nodes: 
+            for node in self.nodes:
                 print(f"Node {node.mac} has the following metrics: {str(node.metrics)}")
