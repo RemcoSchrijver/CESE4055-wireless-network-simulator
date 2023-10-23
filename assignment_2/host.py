@@ -21,7 +21,7 @@ class Host:
     algorithm = None
 
     # Metrics kept per host, can be customized if need be.
-    metrics : Dict 
+    metrics: Dict
 
     # def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Any], int], Message]):	#default constructor
     def __init__(self, mac: int, x: float, y: float, reach: float, algorithm):  # default constructor

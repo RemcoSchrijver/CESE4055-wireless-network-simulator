@@ -6,8 +6,9 @@ from message import Message
 
 class Aloha:
     counter = 0
-    begin_random = 0
+    begin_random = 1
     end_random = 20
+    message_send = False
     states = ["IDLE", "SENDING"]
 
     def __init__(self):
@@ -15,8 +16,13 @@ class Aloha:
 
     def process_algorithm(self, node: Host, round_counter, incoming_message):
         message = None
-        if incoming_message == None:
+
+        if round_counter >= self.begin_random + 1:
+            self.message_send = False
+
+        if incoming_message is None and self.message_send is False:
             message = self.send_message(node, round_counter)
+            self.message_send = True
         # message = Message(origin, neighbours[0], 20, 25, "hello")
         return message
 
@@ -33,7 +39,7 @@ class Aloha:
             message = Message(node.mac, destination, start_time, end_time, "hello")
 
         self.begin_random = end_time
-        self.end_random = self.begin_random + 10
+        self.end_random = self.begin_random + 50
         self.counter += 1
 
         return message
