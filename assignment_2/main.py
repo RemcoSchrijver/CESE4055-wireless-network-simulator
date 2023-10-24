@@ -12,7 +12,7 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(2, ranges=[10, 10], max_radius=20)
+    nodes = configure_nodes(10, ranges=[10, 10], max_radius=20)
 
     # Simulator is started here with a large timeout
     sim = simulator(nodes, 100000)

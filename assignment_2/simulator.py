@@ -64,7 +64,7 @@ class simulator:
             for node in self.nodes:
                 node_channel = self.channels[node]
                 # only deliver the message once self.counter + 1 = end_time of the message for the node.
-                message_to_deliver = [x for x in node_channel if x.end_time == self.counter + 1 and x.destination == node.mac]
+                message_to_deliver = [x for x in node_channel if x.end_time == self.counter + 1 and (x.destination == node.mac or x.destination == -1)]
 
                 # We have multiple messages delivered at the same time, will be a collision
                 if len(message_to_deliver) > 1:
@@ -73,7 +73,6 @@ class simulator:
 
                 # No need evaulating if there are no messages to deliver
                 if len(message_to_deliver) == 1:
-
                     blocking_messages = simulator.find_conflicting_messages(message_to_deliver[0], node_channel)
                     if len(blocking_messages) > 0: 
                         node.metrics["failed to deliver"] = node.metrics["failed to deliver"] + 1
