@@ -129,6 +129,12 @@ class SMAC:
             if round_counter >= self.next_sleep_period:
                 self.next_listen_period = round_counter + self.sleep_period
                 self.state = State.SLEEP
+                # TODO: Process buffered messages: CTS/DATA/ACK
+                # TODO: Generate new messages: RTS
+
+                # TODO: If synchronizer: prevent clock drift of followers and sync schedule
+                # TODO: If follower: update sync schedule if necessary
+
         else:
             print("Unknown state")
 
