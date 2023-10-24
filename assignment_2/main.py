@@ -17,9 +17,9 @@ def main():
     nodes.append(Host(2, 5, 2, 7, Aloha()))
     nodes.append(Host(3, 1, 2, 13, Aloha()))
     nodes.append(Host(4, 5, 4, 12, Aloha()))
-    # nodes.append(Host(5, 1, 2, 3, Aloha()))
-    # nodes.append(Host(6, 2, 3, 9, Aloha()))
-    # nodes.append(Host(7, 4, 6, 4, Aloha()))
+    nodes.append(Host(5, 1, 2, 3, Aloha()))
+    nodes.append(Host(6, 2, 3, 9, Aloha()))
+    nodes.append(Host(7, 4, 6, 4, Aloha()))
 
     plt.figure()
     for node in nodes:
@@ -28,13 +28,13 @@ def main():
     plt.show()
 
     # Simulator is started here with a large timeout 
-    sim = simulator(nodes, 40000)
+    sim = simulator(nodes, 100000)
 
     started_calc = time.time()
     sim.begin_loop()
     ended_calc = time.time()
 
-    print(f"Calculation time {ended_calc - started_calc}")
+    print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
 
     sim.print_results() 
 

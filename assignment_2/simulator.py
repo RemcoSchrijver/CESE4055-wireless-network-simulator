@@ -112,7 +112,7 @@ class simulator:
     @staticmethod
     def print_progress_bar(counter: int, timeout: int):
         if ((counter / timeout) * 100 - math.ceil((counter / timeout)) * 100) < 0.0001:
-            print(f"progress: {format((counter / timeout) * 100, '.2f')}\r", end="")
+            print(f"Progress: {format((counter / timeout) * 100, '.2f')}%\r", end="")
 
 
     def clean_channels(self, node: Host):
