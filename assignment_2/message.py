@@ -14,14 +14,11 @@ class Message:
         self.end_time = end_time
         self.message = message
 
-    def collides(self, message):
-        if (self.start_time < message.end_time):
-            return True
-        if (self.end_time > message.start_time):
-            return True
-        return False
-
     def before_message(self, message):
         if (self.start_time < message.start_time):
             return True
         return False
+
+    def __str__(self):
+        return f"start: {self.start_time}, end: {self.end_time}, source: {self.source}, dest: {self.destination}, message: {self.message}"
+
