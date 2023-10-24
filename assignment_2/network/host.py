@@ -4,7 +4,7 @@ import math
 import logging
 from typing import Any, Callable, Dict, List
 
-from assignment_2.network.message import Message
+from network.message import Message
 
 
 class Host:

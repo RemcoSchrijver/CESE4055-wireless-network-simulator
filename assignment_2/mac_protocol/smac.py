@@ -1,8 +1,8 @@
 import random
 from enum import Enum, auto
 
-from assignment_2.network.host import Host
-from assignment_2.network.message import Message
+from network.host import Host
+from network.message import Message
 
 MEAN_WAIT = 30
 STD_WAIT = 10
