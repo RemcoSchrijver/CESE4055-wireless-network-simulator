@@ -3,7 +3,8 @@ import weakref
 import math
 import logging
 from typing import Any, Callable, Dict, List
-from message import Message
+
+from assignment_2.network.message import Message
 
 
 class Host:

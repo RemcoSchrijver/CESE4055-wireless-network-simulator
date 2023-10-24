@@ -1,8 +1,7 @@
 import random
 
-from host import Host
-from message import Message
-
+from assignment_2.network.host import Host
+from assignment_2.network.message import Message
 
 class Aloha:
     counter = 0

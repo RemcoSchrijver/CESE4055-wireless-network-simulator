@@ -2,8 +2,9 @@ import random
 import time
 from matplotlib import pyplot as plt
 
-from aloha_algorithm import Aloha
-from host import Host
+from mac_protocol.aloha import Aloha
+from mac_protocol.smac import SMAC
+from network.host import Host
 from simulator import simulator
 
 
@@ -11,7 +12,7 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(4, ranges=[10, 10], max_radius=20)
+    nodes = configure_nodes(2, ranges=[10, 10], max_radius=20)
 
     # Simulator is started here with a large timeout
     sim = simulator(nodes, 100000)
@@ -34,9 +35,10 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], max_radius: int):
         x = random.randint(0, ranges[0])
         y = random.randint(0, ranges[1])
 
-        radius = random.randint(1, max_radius)
+        # Lowerbound radius to half the max radius for more realistic model
+        radius = random.randint(max_radius//2, max_radius)
 
-        nodes.append(Host(id, x, y, radius, Aloha()))
+        nodes.append(Host(id, x, y, radius, SMAC()))
 
     return nodes
 
