@@ -1,67 +1,77 @@
-from host import host
-from master import master
-import matplotlib as plt
-import logging
+import random
+import time
+from matplotlib import pyplot as plt
 
-'''
-def plot_host(host):
-	ax = plt.subplot()
-	nos, px, py = [], [], [] 
-	n = ['h1', 'h2', 'h3', 'h4', 'h5']
-
-	for obj in host:
-		px.append(obj.get_positionx())
-		py.append(obj.get_positiony())
-		circle = plt.Circle((obj.get_positionx(), obj.get_positiony()), obj.get_reach(), color='red',fill=False)
-		ax.add_patch(circle)
-
-	for i, txt in enumerate(n):
-		print(px[i])
-		ax.annotate(txt, (px[i], py[i]))
-
-	plt.plot(px, py, 'bo')
-	plt.xlabel('X')
-	plt.ylabel('Y')
-	plt.title("Hostesses")#Muda título do gráfico
-	plt.show()
-	#plt.savefig('Plot_host.png')
-'''
-name = 'GUSSS'
-logging.basicConfig(filename='test.log', level=logging.INFO) # testing log
-#logging.info('Hello world, this is {}'.format(h1))
-
-# Creating master
-m1 = master(id = 100)
-
-# Creating hostesses
-h1 = host(mac=1, x=1, y=0, master=m1, reach=4)
-h2 = host(mac=2, x=2, y=3, master=m1, reach=4)
-h3 = host(mac=3, x=3, y=5, master=m1, reach=4)
-h4 = host(mac=4, x=6, y=8, master=m1, reach=4)
-h5 = host(mac=10, x=5, y=7.5, master=m1, reach=4)
-#h6 = host(mac=6, x=3, y=2, master=m1, reach=4)
-
-#y = h1.get_instances()
-#plot_host(y)
-
-# ******** Starting the simulation ********
-c = 0
-logging.info(f"TIME : {c} \n")
-
-#h1.send_message("hello friend 2", 4)
-h1.send_message("hello friend 2", 3)
-#h3.send_message("hello friend", 1)
-#h3.send_message("hello friend", 1) # OK
+from aloha_algorithm import Aloha
+from host import Host
+from simulator import simulator
 
 
-while m1.get_all_requestes() != []:
-	print(f"\n***************** TIME {c+1} **************\n")
-	logging.info(f"TIME : {c+1} \n")
-	m1.send_permission()
-	
-	#if c == 15:
-	#	break
-	#c+=1
-	if c > 20:
-		break
-	c+=1
+def main():
+    print("Starting main function")
+
+    # Create nodes here
+    nodes = configure_nodes(4, ranges=[10, 10], max_radius=20)
+
+    # Simulator is started here with a large timeout
+    sim = simulator(nodes, 100000)
+
+    started_calc = time.time()
+    sim.begin_loop()
+    ended_calc = time.time()
+
+    print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
+
+    sim.print_results()
+    plot_points(nodes)
+
+
+def configure_nodes(number_of_nodes: int, ranges: [int, int], max_radius: int):
+    nodes = []
+    random.seed(10)
+
+    for id in range(number_of_nodes):
+        x = random.randint(0, ranges[0])
+        y = random.randint(0, ranges[1])
+
+        radius = random.randint(1, max_radius)
+
+        nodes.append(Host(id, x, y, radius, Aloha()))
+
+    return nodes
+
+def plot_points(nodes):
+    points = []
+    radius_all = []
+    ids = []
+    plt.figure()
+    for node in nodes:
+        x = node.get_positionx()
+        y = node.get_positiony()
+        radius = node.get_reach()
+        points.append((x, y))
+        radius_all.append(radius)
+        ids.append(node.mac)
+
+    def plot_circles_around_points(points, radius_all, ids):
+        for (x, y), radius, id in zip(points, radius_all, ids):
+            circle = plt.Circle((x, y), radius, color='blue', fill=False)
+            plt.gca().add_patch(circle)
+            plt.text(x, y - 0.2 * radius, id, ha='center', va='center')
+
+    x, y = zip(*points)
+    plt.scatter(x, y, color='red', label='Points')
+
+    plot_circles_around_points(points, radius_all, ids)
+
+    plt.xlabel('X-axis')
+    plt.ylabel('Y-axis')
+    plt.title('Points with Circles')
+    plt.legend()
+    plt.axis('equal')
+    plt.grid(True)
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
