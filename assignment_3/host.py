@@ -17,7 +17,7 @@ class Host:
     metrics: Dict
 
     # def __init__(self, mac: int, x: float, y: float, reach: float, algorithm: Callable[[Message, List[Any], int], Message]):	#default constructor
-    def __init__(self, mac: int, x: float, y: float, reach: float, routing_algorithm, movement_intensity : float, movement_frequency : float, message_chance : float):  # default constructor
+    def __init__(self, mac: int, x: float, y: float, reach: float, routing_algorithm, movement_frequency : float, message_chance : float):  # default constructor
         self.reach = reach
         self.mac = mac
         self.positionx = x
@@ -34,12 +34,21 @@ class Host:
                 "lowest ttl": 0,
             }
         self.message_queue = []
-        self.movement_intensity = movement_intensity
         self.movement_frequency = movement_frequency
         self.message_chance = message_chance
 
-        self.timestamp_until_sending = 0,
+        self.timestamp_until_sending = 0
 
+        # Movement related variables
+        self.move_turns_remaining = 0
+        self.dx = 0
+        self.dy = 0
+
+        self.max_y = 50
+        self.max_x = 50
+        self.min_y = 0
+        self.min_x = 0
+        self.max_move = 50
 
     @classmethod  # to list all instances of host class
     def get_instances(cls):
@@ -65,7 +74,6 @@ class Host:
                 messages_to_forward.append(message)
 
 
-
         return_message = self.decide_to_send_message(round_counter)
 
         # If we have a message to send lets do that now.
@@ -73,6 +81,38 @@ class Host:
             self.send_message(return_message)
 
         # Done with our round
+        return
+
+
+    # Here we either continue moving or calculate a new move.
+    def evaluate_moving(self):
+        if self.move_turns_remaining < 1:
+            if self.movement_frequency > random.random():
+                self.pick_next_move()
+        else:
+            self.positiony += self.dy
+            self.positionx += self.dx
+            self.move_turns_remaining -= 1
+
+
+
+    def pick_next_move(self):
+        
+        y_upper = math.ceil(min(self.positiony + self.max_move/2, self.max_y))
+        y_lower = math.floor(max(self.positiony - self.max_move/2, self.min_y))
+
+        x_upper = math.ceil(min(self.positionx + self.max_move/2, self.max_x))
+        x_lower = math.floor(max(self.positionx - self.max_move/2, self.min_x))
+
+        new_y = random.randint(y_lower, y_upper)
+        new_x = random.randint(x_lower, x_upper)
+        speed_in_turns = random.randint(500, 2000)
+        
+        self.move_turns_remaining = speed_in_turns
+        
+        self.dy = (new_y - self.positiony)/speed_in_turns
+        self.dx = (new_x - self.positionx)/speed_in_turns
+
         return
 
 

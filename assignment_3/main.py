@@ -1,20 +1,31 @@
 import random
 import time
+from typing import List
 from matplotlib import pyplot as plt
+import tkinter as tk
 
-from aloha_algorithm import Aloha
 from host import Host
 from simulator import simulator
 
 
 def main():
     print("Starting main function")
+    # Seed we need for tests of different algos
+    seed = None
 
     # Create nodes here
-    nodes = configure_nodes(4, ranges=[10, 10], max_radius=20)
+    nodes = configure_nodes(4, ranges=[50, 50], max_radius=40)
+
+    # Start tkinter
+    window = tk.Tk()
+    window.title("Routing simulator")
+    canvas = tk.Canvas(window, width=1920, height=1080)
+    canvas.configure(background="grey")
+    canvas.pack()
+    dot_dict = create_dots_on_canvas(nodes, canvas)
 
     # Simulator is started here with a large timeout
-    sim = simulator(nodes, 100000)
+    sim = simulator(nodes, 1000000, window, canvas, dot_dict)
 
     started_calc = time.time()
     sim.begin_loop()
@@ -23,10 +34,9 @@ def main():
     print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
 
     sim.print_results()
-    plot_points(nodes)
 
 
-def configure_nodes(number_of_nodes: int, ranges: [int, int], max_radius: int):
+def configure_nodes(number_of_nodes: int, ranges: List[int], max_radius: int):
     nodes = []
     random.seed(10)
 
@@ -36,42 +46,28 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], max_radius: int):
 
         radius = random.randint(1, max_radius)
 
-        nodes.append(Host(id, x, y, radius, Aloha()))
+        nodes.append(Host(id, x, y, radius, lambda x: print(x), movement_frequency=0.5, message_chance=0.0))
 
     return nodes
 
-def plot_points(nodes):
-    points = []
-    radius_all = []
-    ids = []
-    plt.figure()
+def create_dots_on_canvas(nodes: List[Host], canvas):
+    dot_dict = {}
+    node: Host
     for node in nodes:
-        x = node.get_positionx()
-        y = node.get_positiony()
-        radius = node.get_reach()
-        points.append((x, y))
-        radius_all.append(radius)
-        ids.append(node.mac)
+        dot_dict[node] = create_dot(node, canvas)
 
-    def plot_circles_around_points(points, radius_all, ids):
-        for (x, y), radius, id in zip(points, radius_all, ids):
-            circle = plt.Circle((x, y), radius, color='blue', fill=False)
-            plt.gca().add_patch(circle)
-            plt.text(x, y - 0.2 * radius, id, ha='center', va='center')
+    return dot_dict
 
-    x, y = zip(*points)
-    plt.scatter(x, y, color='red', label='Points')
+def create_dot(node: Host, canvas):
 
-    plot_circles_around_points(points, radius_all, ids)
+    fill_color = "#{:02x}{:02x}{:02x}".format(
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255)
+    )  
 
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-    plt.title('Points with Circles')
-    plt.legend()
-    plt.axis('equal')
-    plt.grid(True)
-    plt.show()
-
+    dot = canvas.create_oval(node.positionx, node.positiony, node.positionx+10, node.positiony+10, fill=fill_color)
+    return dot
 
 if __name__ == '__main__':
     main()
