@@ -44,11 +44,12 @@ class Host:
         self.dx = 0
         self.dy = 0
 
-        self.max_y = 50
-        self.max_x = 50
+        self.max_y = 500
+        self.max_x = 500
         self.min_y = 0
         self.min_x = 0
         self.max_move = 50
+
 
     @classmethod  # to list all instances of host class
     def get_instances(cls):

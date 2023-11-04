@@ -14,18 +14,18 @@ def main():
     seed = None
 
     # Create nodes here
-    nodes = configure_nodes(4, ranges=[50, 50], max_radius=40)
+    nodes = configure_nodes(50, ranges=[510, 510], max_radius=40)
 
     # Start tkinter
     window = tk.Tk()
     window.title("Routing simulator")
-    canvas = tk.Canvas(window, width=1920, height=1080)
+    canvas = tk.Canvas(window, width=500, height=500)
     canvas.configure(background="grey")
     canvas.pack()
     dot_dict = create_dots_on_canvas(nodes, canvas)
 
     # Simulator is started here with a large timeout
-    sim = simulator(nodes, 1000000, window, canvas, dot_dict)
+    sim = simulator(nodes, 100000, window, canvas, dot_dict)
 
     started_calc = time.time()
     sim.begin_loop()
@@ -66,7 +66,7 @@ def create_dot(node: Host, canvas):
         random.randint(0, 255)
     )  
 
-    dot = canvas.create_oval(node.positionx, node.positiony, node.positionx+10, node.positiony+10, fill=fill_color)
+    dot = canvas.create_oval(node.positionx-5, node.positiony-5, node.positionx+5, node.positiony+5, fill=fill_color)
     return dot
 
 if __name__ == '__main__':

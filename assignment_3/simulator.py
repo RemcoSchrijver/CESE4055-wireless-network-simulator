@@ -41,7 +41,7 @@ class simulator:
             # Main loop for letting the nodes move around
             for node in self.nodes:
                 node.evaluate_moving()
-                self.canvas.move(self.node_dict[node], node.positionx/10000, node.positiony/10000)
+                self.canvas.move(self.node_dict[node], node.dx, node.dy)
 
             
             self.tkinter_window.update_idletasks()
