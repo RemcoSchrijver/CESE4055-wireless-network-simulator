@@ -27,7 +27,6 @@ class simulator:
             print('No nodes registered so simulating nothing')
             return
 
-
         while self.counter < self.timeout:
             # Progress bar
             simulator.print_progress_bar(self.counter, self.timeout)
@@ -46,6 +45,7 @@ class simulator:
             
             self.tkinter_window.update_idletasks()
             self.tkinter_window.update()
+            
 
             self.counter = self.counter + 1
 

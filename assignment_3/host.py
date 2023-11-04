@@ -27,11 +27,14 @@ class Host:
         self.metrics = {
                 "messages received": 0,
                 "messages sent": 0,
+                "messages failed": 0,
                 "forward-messages received": 0,
-                "messages forwarded": 0,
+                "forward-messages sent": 0,
+                "forward-messages failed": 0,
                 "average ttl": 0,
                 "highest ttl": 0,
                 "lowest ttl": 0,
+                "messages stranded": 0,
             }
         self.message_queue = []
         self.movement_frequency = movement_frequency
@@ -48,8 +51,10 @@ class Host:
         self.max_x = 500
         self.min_y = 0
         self.min_x = 0
+
         self.max_move = 50
 
+        self.messages_out_for_delivery = []
 
     @classmethod  # to list all instances of host class
     def get_instances(cls):
@@ -63,25 +68,53 @@ class Host:
         cls._instances -= dead
 
     # Evaluates a single round, checks if there is a message to handle else just go to the algorithm.
-    # Maybe it might be nice to give the algorithm a sense of the counter but that can be added later.
     def evaluate_round(self, round_counter):
         
+        # Evaluate our incoming messages
         messages_to_forward = []
         while len(self.message_queue) > 0:
             message = self.message_queue.pop()
-            if message.end_destination == self:
-                self.metrics["messages received"] = self.metrics["messages received"] + 1
-            else:
-                messages_to_forward.append(message)
 
+            if message.end_destination == self:
+                self.metrics["messages received"] =+ 1
+                self.incorporate_ttl(message) 
+            else:
+                if message.ttl == 0:
+                    self.metrics["messages stranded"] += 1
+                else:
+                    self.metrics["forward-messages received"] =+ 1
+                    messages_to_forward.append(message)
+
+        # Roll a dice to send a message
+        return_message = None 
+        if self.timestamp_until_sending < round_counter:
+            return_message = self.decide_to_send_message(round_counter)
 
         return_message = self.decide_to_send_message(round_counter)
+        # If we have a message to send thats not already out for delivery do that now.
+        if return_message is not None and return_message.destination is not None:
+            # Routing algorithm basically only has to set the current destination(s), for broadcast just use all the current
+            # neighbors.
+            return_message = self.routing_algorithm(self.get_neighbors(), return_message)
+            # Decrease TTL
+            return_message.ttl = return_message.ttl - 1
 
-        # If we have a message to send lets do that now.
-        if return_message is not None:
-            self.send_message(return_message)
+            self.messages_out_for_delivery.append(return_message)
 
-        # Done with our round
+        # We also have messages to forward so let's try to deliver those as well.
+        while len(messages_to_forward) > 0:
+            # Routing for forwarding is also necessary.
+            message_to_forward = messages_to_forward.pop()
+            message_to_forward = self.routing_algorithm(self.get_neighbors(), message_to_forward)
+            # Decrease TTL
+            message_to_forward = message_to_forward - 1
+
+            self.messages_out_for_delivery.append(message_to_forward)
+
+        # Try do deliver our messages that are out for delivery, we basically check if our destinations are still in reach.
+        self.try_to_deliver_messages(round_counter)
+
+        # Done with our round except for moving, we do that later to make sure everyone is working with the same positions.
         return
 
 
@@ -117,19 +150,73 @@ class Host:
         return
 
 
-    def send_message(self, message: Message):
-        neighbors = self.get_neighbors()
+    # We keep track of our neighbors and try to deliver our message, if the destination nodes are out of our
+    # range this is no longer a target, if we lose all targets sending the message failed.
+    def try_to_deliver_messages(self, round_counter):
+        if len(self.messages_out_for_delivery) > 0:
+            neighbors_in_reach = self.get_neighbors()
+            message : Message
 
-        self.channels[self].append(message)
-        # Dumps the messages in the channel of the neighbors.
-        for each in neighbors:
-            self.channels[each].append(message)
+            for message in self.messages_out_for_delivery:
+                # There are messages to try to deliver
+                if len(message.destination) > 0:
+                    dest : Host
+                    for dest in message.destination:
+
+                        # Our dest is no longer in reach, remove it from our message destination cause it failed.
+                        if neighbors_in_reach.__contains__(dest) == False:
+                            message.destination.remove(dest)
+                            if len(message.destination) < 1:
+
+                                # We failed delivery completely, time to do book keeping.
+                                metrics_string = "forward-messages failed"
+                                if message.source == self:
+                                    metrics_string = "messages failed"
+                                self.metrics[metrics_string] =+ 1
+                            continue
+
+                        else: 
+                            if round_counter > message.end_time:
+                                dest.message_queue.append(message)
+                                message.destination.remove(dest)
+
+                                # We succeeded in delivering/forwarding our message, do book keeping.
+                                metrics_string = "forward-messages sent"
+                                if message.source == self:
+                                    metrics_string = "messages sent"
+                                self.metrics[metrics_string] =+ 1
+                            continue
+                            
+                else:
+                    self.messages_out_for_delivery.remove(message)
+                
+
+
+    # Incorporate TTL for a message successfully received we are going to store the metrics.
+    def incorporate_ttl(self, message: Message):
+
+        ttl = Message.default_ttl - message.ttl
+
+        average = self.metrics["average ttl"]
+        received_messages_count = self.metrics["messages received"]
+        highest = self.metrics["highest ttl"]
+        lowest = self.metrics["lowest ttl"]
+
+        self.metrics["average ttl"] = ((average * (received_messages_count - 1)) + ttl) / received_messages_count
+        if highest < ttl:
+            self.metrics["highest ttl"] = ttl
+        if lowest > ttl:
+            self.metrics["lowest ttl"] = ttl
+
+        return
+
     
+    # Decide randomly if you will send a message
     def decide_to_send_message(self, round_counter):
         if self.message_chance > random.random():
             end_destination = random.choice(list(self._instances))
             if end_destination != self:
-                return Message(self, None, end_destination, round_counter, round_counter + random.randint(10, 150), "random message", 64)
+                return Message(self, None, end_destination, round_counter, round_counter + random.randint(10, 150), "random message")
         return None
 
 
