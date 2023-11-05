@@ -18,6 +18,10 @@ class simulator:
         self.tkinter_window = tkinter_window
         self.canvas = canvas
         self.node_dict = node_dict
+        self.message_line_dict = {}
+        node: Host
+        for node in nodes:
+            self.message_line_dict[node] = {} 
 
     def begin_loop(self):
         
@@ -35,7 +39,7 @@ class simulator:
             # Main loop to let nodes do their thing
             node: Host
             for node in self.nodes:
-                node.evaluate_round(self.counter)
+                node.evaluate_round(self.counter, self.canvas)
 
             # Main loop for letting the nodes move around
             for node in self.nodes:
@@ -51,6 +55,9 @@ class simulator:
 
         print('Done simulating, ran for %d iterations' % self.counter)
         return
+
+
+
 
     def print_results(self):
         """Method that prints results of the simulator

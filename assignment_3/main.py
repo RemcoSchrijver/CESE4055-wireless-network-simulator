@@ -15,7 +15,7 @@ def main():
     seed = None
 
     # Create nodes here
-    nodes = configure_nodes(10, [500, 500], 25, broadcast_routing, 0.5, 0.1)
+    nodes = configure_nodes(50, [500, 500], 50, broadcast_routing, 0.5, 0.1)
 
     # Start tkinter
     window = tk.Tk()

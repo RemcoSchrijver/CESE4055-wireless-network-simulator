@@ -54,7 +54,9 @@ class Host:
 
         self.max_move = 50
 
-        self.messages_out_for_delivery = []
+        self.message_out_for_delivery: Message = None 
+        self.message_out_queue = []
+        self.message_lines = None 
 
     @classmethod  # to list all instances of host class
     def get_instances(cls):
@@ -68,7 +70,7 @@ class Host:
         cls._instances -= dead
 
     # Evaluates a single round, checks if there is a message to handle else just go to the algorithm.
-    def evaluate_round(self, round_counter):
+    def evaluate_round(self, round_counter, canvas):
         
         # Evaluate our incoming messages
         messages_to_forward = []
@@ -97,7 +99,7 @@ class Host:
             # neighbors.
             return_message = self.routing_algorithm(self.get_neighbors(), return_message)
 
-            self.messages_out_for_delivery.append(return_message)
+            self.message_out_queue.append(return_message)
 
         # We also have messages to forward so let's try to deliver those as well.
         while len(messages_to_forward) > 0:
@@ -113,10 +115,10 @@ class Host:
             # Decrease TTL
             message_to_forward.ttl -= 1
 
-            self.messages_out_for_delivery.append(message_to_forward)
+            self.message_out_queue.append(message_to_forward)
 
         # Try do deliver our messages that are out for delivery, we basically check if our destinations are still in reach.
-        self.try_to_deliver_messages(round_counter)
+        self.try_to_deliver_messages(round_counter, canvas)
 
         # Done with our round except for moving, we do that later to make sure everyone is working with the same positions.
         return
@@ -156,51 +158,73 @@ class Host:
 
     # We keep track of our neighbors and try to deliver our message, if the destination nodes are out of our
     # range this is no longer a target, if we lose all targets sending the message failed.
-    def try_to_deliver_messages(self, round_counter):
-        if len(self.messages_out_for_delivery) > 0:
+    def try_to_deliver_messages(self, round_counter, canvas):
+        if len(self.message_out_queue) > 0 and self.message_out_for_delivery is None:
+            self.message_out_for_delivery = self.message_out_queue.pop() 
+            self.message_out_for_delivery.end_time = round_counter + self.message_out_for_delivery.end_time - self.message_out_for_delivery.start_time
+            self.message_out_for_delivery.start_time = round_counter
+
+        if self.message_out_for_delivery is not None:
             neighbors_in_reach = self.get_neighbors()
             message : Message
 
-            for message in self.messages_out_for_delivery:
-                # There are messages to try to deliver
-                if len(message.destination) > 0:
-                    dest : Host
-                    for dest in message.destination:
+            message = self.message_out_for_delivery
+            # There are messages to try to deliver
+            if len(message.destination) > 0:
+                dest : Host
+                for dest in message.destination:
 
-                        # Our dest is no longer in reach, remove it from our message destination cause it failed.
-                        if dest in neighbors_in_reach == False:
+                    # Our dest is no longer in reach, remove it from our message destination cause it failed.
+                    if dest in neighbors_in_reach == False:
+                        message.destination.remove(dest)
+                        self.delete_line(canvas, message, dest)
+                        if len(message.destination) < 1:
+
+                            # We failed delivery completely, time to do book keeping.
+                            metrics_string = "forward-messages failed"
+                            if message.source == self:
+                                metrics_string = "messages failed"
+                            self.metrics[metrics_string] += 1
+                        continue
+
+                    else: 
+                        # We succeeded in delivering/forwarding our message, do book keeping.
+                        if round_counter > message.end_time:
+                            dest.message_queue.append(message)
                             message.destination.remove(dest)
-                            if len(message.destination) < 1:
 
-                                # We failed delivery completely, time to do book keeping.
-                                metrics_string = "forward-messages failed"
-                                if message.source == self:
-                                    metrics_string = "messages failed"
-                                self.metrics[metrics_string] += 1
-                            continue
+                            metrics_string = "forward-messages sent"
+                            if message.source == self:
+                                metrics_string = "messages sent"
+                            self.metrics[metrics_string] += 1
+                            self.delete_line(canvas)
 
-                        else: 
-                            if round_counter > message.end_time:
-                                dest.message_queue.append(message)
-                                message.destination.remove(dest)
-
-                                # We succeeded in delivering/forwarding our message, do book keeping.
-                                metrics_string = "forward-messages sent"
-                                if message.source == self:
-                                    metrics_string = "messages sent"
-                                self.metrics[metrics_string] += 1
-                            continue
+                        # We are still in reach and can keep delivering.
+                        else:
+                            self.draw_line(canvas, message, dest)
+                        continue
                             
-                else:
-                    if(message.end_time > round_counter):
-                        # We failed delivery completely, time to do book keeping.
-                        metrics_string = "forward-messages failed"
-                        if message.source == self:
-                            metrics_string = "messages failed"
-                        self.metrics[metrics_string] += 1
-
-                    self.messages_out_for_delivery.remove(message)
+                        
+            else:
+                if(message.end_time > round_counter):
+                    # We failed delivery completely, time to do book keeping.
+                    metrics_string = "forward-messages failed"
+                    if message.source == self:
+                        metrics_string = "messages failed"
+                    self.metrics[metrics_string] += 1
                 
+                self.delete_line(canvas)
+                self.message_out_for_delivery = None 
+
+
+                
+    def draw_line(self, canvas, message: Message, destination):
+            self.delete_line(canvas)
+            self.message_lines = canvas.create_line(self.positionx, self.positiony, destination.positionx, destination.positiony, fill='green', width=3)
+            
+
+    def delete_line(self, canvas):
+            canvas.delete(self.message_lines)
 
 
     # Incorporate TTL for a message successfully received we are going to store the metrics.
