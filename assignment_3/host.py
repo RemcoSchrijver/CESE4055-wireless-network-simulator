@@ -73,16 +73,17 @@ class Host:
         # Evaluate our incoming messages
         messages_to_forward = []
         while len(self.message_queue) > 0:
+            message: Message
             message = self.message_queue.pop()
 
-            if message.end_destination == self:
-                self.metrics["messages received"] =+ 1
+            if message.end_destination() == self: # this is a weakref, make it a strongref by using a method call.
+                self.metrics["messages received"] += 1
                 self.incorporate_ttl(message) 
             else:
                 if message.ttl == 0:
                     self.metrics["messages stranded"] += 1
                 else:
-                    self.metrics["forward-messages received"] =+ 1
+                    self.metrics["forward-messages received"] += 1
                     messages_to_forward.append(message)
 
         # Roll a dice to send a message
@@ -90,24 +91,27 @@ class Host:
         if self.timestamp_until_sending < round_counter:
             return_message = self.decide_to_send_message(round_counter)
 
-        return_message = self.decide_to_send_message(round_counter)
         # If we have a message to send thats not already out for delivery do that now.
-        if return_message is not None and return_message.destination is not None:
+        if return_message is not None and return_message.end_destination is not None:
             # Routing algorithm basically only has to set the current destination(s), for broadcast just use all the current
             # neighbors.
             return_message = self.routing_algorithm(self.get_neighbors(), return_message)
-            # Decrease TTL
-            return_message.ttl = return_message.ttl - 1
 
             self.messages_out_for_delivery.append(return_message)
 
         # We also have messages to forward so let's try to deliver those as well.
         while len(messages_to_forward) > 0:
             # Routing for forwarding is also necessary.
+            message_to_forward: Message
             message_to_forward = messages_to_forward.pop()
+
+            # Edit the message timings
+            message_to_forward.end_time = round_counter + (message_to_forward.end_time - message_to_forward.start_time)
+            message_to_forward.start_time = round_counter
+
             message_to_forward = self.routing_algorithm(self.get_neighbors(), message_to_forward)
             # Decrease TTL
-            message_to_forward = message_to_forward - 1
+            message_to_forward.ttl -= 1
 
             self.messages_out_for_delivery.append(message_to_forward)
 
@@ -164,7 +168,7 @@ class Host:
                     for dest in message.destination:
 
                         # Our dest is no longer in reach, remove it from our message destination cause it failed.
-                        if neighbors_in_reach.__contains__(dest) == False:
+                        if dest in neighbors_in_reach == False:
                             message.destination.remove(dest)
                             if len(message.destination) < 1:
 
@@ -172,7 +176,7 @@ class Host:
                                 metrics_string = "forward-messages failed"
                                 if message.source == self:
                                     metrics_string = "messages failed"
-                                self.metrics[metrics_string] =+ 1
+                                self.metrics[metrics_string] += 1
                             continue
 
                         else: 
@@ -184,10 +188,17 @@ class Host:
                                 metrics_string = "forward-messages sent"
                                 if message.source == self:
                                     metrics_string = "messages sent"
-                                self.metrics[metrics_string] =+ 1
+                                self.metrics[metrics_string] += 1
                             continue
                             
                 else:
+                    if(message.end_time > round_counter):
+                        # We failed delivery completely, time to do book keeping.
+                        metrics_string = "forward-messages failed"
+                        if message.source == self:
+                            metrics_string = "messages failed"
+                        self.metrics[metrics_string] += 1
+
                     self.messages_out_for_delivery.remove(message)
                 
 
@@ -215,8 +226,10 @@ class Host:
     def decide_to_send_message(self, round_counter):
         if self.message_chance > random.random():
             end_destination = random.choice(list(self._instances))
-            if end_destination != self:
-                return Message(self, None, end_destination, round_counter, round_counter + random.randint(10, 150), "random message")
+            if end_destination() != self:
+                end_time = round_counter + random.randint(10, 15)
+                self.timestamp_until_sending = end_time
+                return Message(self, None, end_destination, round_counter, end_time, "random message")
         return None
 
 

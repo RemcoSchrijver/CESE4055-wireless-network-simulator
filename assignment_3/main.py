@@ -1,6 +1,7 @@
 import random
 import time
 from typing import List
+from broadcast_routing import broadcast_routing
 from matplotlib import pyplot as plt
 import tkinter as tk
 
@@ -14,12 +15,12 @@ def main():
     seed = None
 
     # Create nodes here
-    nodes = configure_nodes(50, ranges=[510, 510], max_radius=40)
+    nodes = configure_nodes(10, [500, 500], 25, broadcast_routing, 0.5, 0.1)
 
     # Start tkinter
     window = tk.Tk()
     window.title("Routing simulator")
-    canvas = tk.Canvas(window, width=500, height=500)
+    canvas = tk.Canvas(window, width=510, height=510)
     canvas.configure(background="grey")
     canvas.pack()
     dot_dict = create_dots_on_canvas(nodes, canvas)
@@ -36,7 +37,7 @@ def main():
     sim.print_results()
 
 
-def configure_nodes(number_of_nodes: int, ranges: List[int], max_radius: int):
+def configure_nodes(number_of_nodes: int, ranges: List[int], max_radius: int, routing_algo, movement_frequency, message_chance):
     nodes = []
     random.seed(10)
 
@@ -44,9 +45,9 @@ def configure_nodes(number_of_nodes: int, ranges: List[int], max_radius: int):
         x = random.randint(0, ranges[0])
         y = random.randint(0, ranges[1])
 
-        radius = random.randint(1, max_radius)
+        radius = random.randint(10, max_radius)
 
-        nodes.append(Host(id, x, y, radius, lambda x: print(x), movement_frequency=0.5, message_chance=0.0))
+        nodes.append(Host(id, x, y, radius, routing_algo, movement_frequency, message_chance))
 
     return nodes
 
