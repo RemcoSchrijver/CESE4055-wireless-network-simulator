@@ -97,7 +97,6 @@ class Host:
         if return_message is not None and return_message.end_destination is not None:
             # Routing algorithm basically only has to set the current destination(s), for broadcast just use all the current
             # neighbors.
-            return_message = self.routing_algorithm(self.get_neighbors(), return_message)
 
             self.message_out_queue.append(return_message)
 
@@ -110,8 +109,6 @@ class Host:
             # Edit the message timings
             message_to_forward.end_time = round_counter + (message_to_forward.end_time - message_to_forward.start_time)
             message_to_forward.start_time = round_counter
-
-            message_to_forward = self.routing_algorithm(self.get_neighbors(), message_to_forward)
             # Decrease TTL
             message_to_forward.ttl -= 1
 
@@ -160,9 +157,11 @@ class Host:
     # range this is no longer a target, if we lose all targets sending the message failed.
     def try_to_deliver_messages(self, round_counter, canvas):
         if len(self.message_out_queue) > 0 and self.message_out_for_delivery is None:
+            neighbors_in_reach = self.get_neighbors()
             self.message_out_for_delivery = self.message_out_queue.pop() 
             self.message_out_for_delivery.end_time = round_counter + self.message_out_for_delivery.end_time - self.message_out_for_delivery.start_time
             self.message_out_for_delivery.start_time = round_counter
+            self.message_out_for_delivery = self.routing_algorithm(neighbors_in_reach, self.message_out_for_delivery)
 
         if self.message_out_for_delivery is not None:
             neighbors_in_reach = self.get_neighbors()
