@@ -11,7 +11,7 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(4, ranges=[10, 10], max_radius=20)
+    nodes = configure_nodes(4, ranges=[10, 10], min_radius = 5, max_radius=20)
 
     # Simulator is started here with a large timeout
     sim = simulator(nodes, 100000)
@@ -26,7 +26,7 @@ def main():
     plot_points(nodes)
 
 
-def configure_nodes(number_of_nodes: int, ranges: [int, int], max_radius: int):
+def configure_nodes(number_of_nodes: int, ranges: [int, int], min_radius: int, max_radius: int):
     nodes = []
     random.seed(10)
 
@@ -34,7 +34,7 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], max_radius: int):
         x = random.randint(0, ranges[0])
         y = random.randint(0, ranges[1])
 
-        radius = random.randint(1, max_radius)
+        radius = random.randint(min_radius, max_radius)
 
         nodes.append(Host(id, x, y, radius, Aloha()))
 
