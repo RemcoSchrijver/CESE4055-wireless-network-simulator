@@ -11,10 +11,10 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(4, ranges=[10, 10], min_radius = 5, max_radius=20)
+    nodes = configure_nodes(10, ranges=[100, 100], min_radius=50, max_radius=100, message_length=5, send_freq_interval=(100, 200))
 
     # Simulator is started here with a large timeout
-    sim = simulator(nodes, 100000)
+    sim = simulator(nodes, 10000)
 
     started_calc = time.time()
     sim.begin_loop()
@@ -26,7 +26,8 @@ def main():
     plot_points(nodes)
 
 
-def configure_nodes(number_of_nodes: int, ranges: [int, int], min_radius: int, max_radius: int):
+def configure_nodes(number_of_nodes: int, ranges: [int, int], min_radius: int, max_radius: int,
+                    message_length: int, send_freq_interval: (int, int)):
     nodes = []
     random.seed(10)
 
@@ -36,7 +37,7 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], min_radius: int, m
 
         radius = random.randint(min_radius, max_radius)
 
-        nodes.append(Host(id, x, y, radius, Aloha()))
+        nodes.append(Host(id, x, y, radius, Aloha(message_length, send_freq_interval)))
 
     return nodes
 

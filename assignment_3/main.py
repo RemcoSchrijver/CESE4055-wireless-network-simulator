@@ -15,7 +15,7 @@ def main():
     seed = None
 
     # Create nodes here
-    nodes = configure_nodes(50, [500, 500], 50, broadcast_routing, 0.5, 0.1)
+    nodes = configure_nodes(20, [500, 500], 100, broadcast_routing, 0, 0.1)
 
     # Start tkinter
     window = tk.Tk()
@@ -26,7 +26,7 @@ def main():
     dot_dict = create_dots_on_canvas(nodes, canvas)
 
     # Simulator is started here with a large timeout
-    sim = simulator(nodes, 100000, window, canvas, dot_dict)
+    sim = simulator(nodes, 10000, window, canvas, dot_dict)
 
     started_calc = time.time()
     sim.begin_loop()

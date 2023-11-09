@@ -30,6 +30,7 @@ class Host:
         self.positionx = x
         self.positiony = y
         self._instances.add(weakref.ref(self))
+
         self.algorithm = algorithm
         self.metrics = {"failed to deliver": 0, "successfully delivered": 0, "messages sent": 0}
         self.channels = {}
