@@ -11,11 +11,11 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(100, ranges=[300, 300], radius_node=[100, 400], message_length=2,
-                            send_freq_interval=[100, 500])
+    nodes = configure_nodes(40, ranges=[200, 200], radius_node=[70, 200], message_length=2,
+                            send_freq_interval=[100, 200])
 
     # Simulator is started here with a large timeout
-    sim = simulator(nodes, 100000)
+    sim = simulator(nodes, 10000)
 
     started_calc = time.time()
     sim.begin_loop()
@@ -23,7 +23,8 @@ def main():
 
     print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
 
-    sim.print_results()
+    sim.get_stats()
+    # sim.print_results()
     # sim.plot_results()
     plot_points(nodes)
 
@@ -45,6 +46,7 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], radius_node: [int,
         nodes.append(Host(id, x, y, radius, Aloha(message_length, send_freq_interval)))
 
     return nodes
+
 
 def plot_points(nodes):
     points = []
