@@ -2,6 +2,7 @@ import math
 import sys
 import os
 import shutil
+from fileinput import close
 from typing import Dict, List, TextIO
 
 from host import Host
@@ -10,8 +11,8 @@ from message import Message
 
 class simulator:
     counter: int = 0
-    nodes: List[Host] = []
-    timeout: int = sys.maxsize
+    # nodes: List[Host] = []
+    # timeout: int = sys.maxsize
 
     # This is an interesting one, this dictionary keeps track for all nodes if their sending channel is clear.
     # How it does this is done because every node that decides to transmit will add their transmission time window
@@ -20,12 +21,20 @@ class simulator:
     channel_files: Dict[Host, TextIO] = {}
     channel_cleaning_evaluation: Dict[Host, int] = {}
 
-    node_channel_counter: Dict[Host, int] = {}
-    node_info_dict: Dict[Host, Dict] = {}
+    # node_channel_counter: Dict[Host, int] = {}
+    # node_info_dict: Dict[Host, Dict] = {}
 
     def __init__(self, nodes, timeout):
-        self.nodes = nodes
+        self.counter: int = 0
+        self.nodes: List[Host] = nodes
         self.timeout = timeout
+
+        # self.channels: Dict[Host, List[Message]] = {}
+        # self.channel_files: Dict[Host, TextIO] = {}
+        # self.channel_cleaning_evaluation: Dict[Host, int] = {}
+
+        self.node_channel_counter: Dict[Host, int] = {}
+        self.node_info_dict: Dict[Host, Dict] = {}
 
     def begin_loop(self):
 
@@ -35,7 +44,7 @@ class simulator:
             shutil.rmtree(output_path)
         os.mkdir("output/")
 
-        print("Starting simulator...")
+        print("Starting simulator... with {:d} nodes", str(len(self.nodes)))
         if len(self.nodes) <= 0:
             print('No nodes registered so simulating nothing')
             return
@@ -84,6 +93,11 @@ class simulator:
                 self.clean_channels(node)
 
             self.counter = self.counter + 1
+
+        for node in self.nodes:
+            self.channel_files[node].close()
+        # for channel_file in self.channel_files:
+        #     os.remove(channel_file)
 
         print('Done simulating, ran for %d iterations' % self.counter)
         return

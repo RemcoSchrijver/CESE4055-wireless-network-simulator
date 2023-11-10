@@ -11,7 +11,7 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(40, ranges=[200, 200], radius_node=[70, 200], message_length=2,
+    nodes = configure_nodes(10, ranges=[200, 200], radius_node=[70, 200], message_length=2,
                             send_freq_interval=[100, 200])
 
     # Simulator is started here with a large timeout
@@ -23,10 +23,37 @@ def main():
 
     print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
 
-    sim.get_stats()
+    stats = sim.get_stats()
     # sim.print_results()
     # sim.plot_results()
-    plot_points(nodes)
+    # plot_points(nodes)
+
+    plot_throughput()
+
+def plot_throughput():
+    plot_range = range(3, 30)
+    failed_percentage = []
+
+
+    for number_of_nodes in plot_range:
+        nodes = configure_nodes(number_of_nodes, ranges=[200, 200], radius_node=[50, 200], message_length=10,
+                                send_freq_interval=[100, 200])
+
+        # Simulator is started here with a large timeout
+        sim = simulator(nodes, 10000)
+        started_calc = time.time()
+        sim.begin_loop()
+        ended_calc = time.time()
+        print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
+        stats = sim.get_stats()
+        failed_percentage.append(stats['failed_percentage'])
+
+    plt.figure()
+    plt.plot(plot_range, failed_percentage)
+    plt.ylabel('Collision percentage')
+    plt.xlabel('Nodes')
+    plt.title('Node collisions')
+    plt.show()
 
 
 def configure_nodes(number_of_nodes: int, ranges: [int, int], radius_node: [int, int],
