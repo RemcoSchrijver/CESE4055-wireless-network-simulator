@@ -11,10 +11,11 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(10, ranges=[100, 100], min_radius=50, max_radius=100, message_length=5, send_freq_interval=(100, 200))
+    nodes = configure_nodes(100, ranges=[300, 300], radius_node=[100, 400], message_length=2,
+                            send_freq_interval=[100, 500])
 
     # Simulator is started here with a large timeout
-    sim = simulator(nodes, 10000)
+    sim = simulator(nodes, 100000)
 
     started_calc = time.time()
     sim.begin_loop()
@@ -23,11 +24,12 @@ def main():
     print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
 
     sim.print_results()
+    # sim.plot_results()
     plot_points(nodes)
 
 
-def configure_nodes(number_of_nodes: int, ranges: [int, int], min_radius: int, max_radius: int,
-                    message_length: int, send_freq_interval: (int, int)):
+def configure_nodes(number_of_nodes: int, ranges: [int, int], radius_node: [int, int],
+                    message_length: int, send_freq_interval: [int, int]):
     nodes = []
     random.seed(10)
 
@@ -35,7 +37,10 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], min_radius: int, m
         x = random.randint(0, ranges[0])
         y = random.randint(0, ranges[1])
 
-        radius = random.randint(min_radius, max_radius)
+        minRadius: int = radius_node[0]
+        maxRadius: int = radius_node[1]
+
+        radius = random.randint(minRadius, maxRadius)
 
         nodes.append(Host(id, x, y, radius, Aloha(message_length, send_freq_interval)))
 
@@ -45,6 +50,7 @@ def plot_points(nodes):
     points = []
     radius_all = []
     ids = []
+    # plt.figure(figsize=(3, 3), dpi=200)
     plt.figure()
     for node in nodes:
         x = node.get_positionx()
@@ -58,17 +64,17 @@ def plot_points(nodes):
         for (x, y), radius, id in zip(points, radius_all, ids):
             circle = plt.Circle((x, y), radius, color='blue', fill=False)
             plt.gca().add_patch(circle)
-            plt.text(x, y - 0.2 * radius, id, ha='center', va='center')
+            plt.text(x, y - 10, id, ha='center', va='center')
 
     x, y = zip(*points)
     plt.scatter(x, y, color='red', label='Points')
 
     plot_circles_around_points(points, radius_all, ids)
 
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-    plt.title('Points with Circles')
-    plt.legend()
+    plt.xlabel('X-location')
+    plt.ylabel('Y-location')
+    plt.title('Node locations')
+    # plt.legend()
     plt.axis('equal')
     plt.grid(True)
     plt.show()

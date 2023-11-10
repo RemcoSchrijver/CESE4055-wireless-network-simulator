@@ -73,7 +73,6 @@ class simulator:
 
                 # No need evaulating if there are no messages to deliver
                 if len(message_to_deliver) == 1:
-
                     blocking_messages = simulator.find_conflicting_messages(message_to_deliver[0], node_channel)
                     if len(blocking_messages) > 0: 
                         node.metrics["failed to deliver"] = node.metrics["failed to deliver"] + 1
@@ -107,7 +106,7 @@ class simulator:
         Returns the list of messages that conflict with this message, as in the end time is later then the start time of this message
         as well as the start time being before the end time of this message.
         """
-        return  [x for x in message_channel if (x.end_time >= message.start_time and x.start_time <= message.end_time and x != message)]
+        return [x for x in message_channel if (x.end_time >= message.start_time and x.start_time <= message.end_time and x != message)]
     
     @staticmethod
     def print_progress_bar(counter: int, timeout: int):

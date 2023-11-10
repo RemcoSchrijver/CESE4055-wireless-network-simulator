@@ -10,9 +10,8 @@ class Aloha:
         self.message_send = False
         self.states = ["IDLE", "SENDING"]
         self.message_length = message_length
-        self.begin_random = send_freq_interval[0]
-        self.end_random = send_freq_interval[1]
-        self.random_difference = self.end_random - self.begin_random
+        self.random_interval = send_freq_interval
+        self.start_random = 0
 
         self.start_time = 0
         self.end_time = 0
@@ -20,7 +19,7 @@ class Aloha:
     def process_algorithm(self, node: Host, round_counter, incoming_message):
         message = None
 
-        if round_counter > self.start_time:
+        if round_counter > self.start_time+1:
             self.message_send = False
 
         if incoming_message is None and self.message_send is False:
@@ -33,7 +32,7 @@ class Aloha:
         message = None
         neigbors = node.get_neighbors()
 
-        self.start_time = random.randint(self.begin_random, self.end_random)
+        self.start_time = random.randint(self.start_random + self.random_interval[0], self.start_random + self.random_interval[1])
         self.end_time = self.start_time + self.message_length
 
         if len(neigbors) > 0:
@@ -41,8 +40,7 @@ class Aloha:
             destination = neigbors[random_neigbour].mac
             message = Message(node.mac, destination, self.start_time, self.end_time, "hello")
 
-        self.begin_random = self.start_time
-        self.end_random = self.begin_random + self.random_difference
+        self.start_random = self.start_time
         self.counter += 1
 
         return message

@@ -68,7 +68,7 @@ class Host:
     def send_message(self, message: Message):
         neighbors = self.get_neighbors()
 
-        self.channels[self].append(message)
+        # self.channels[self].append(message)
         # Dumps the messages in the channel of the neighbors.
         for each in neighbors:
             self.channels[each].append(message)
