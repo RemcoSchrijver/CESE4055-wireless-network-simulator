@@ -28,8 +28,8 @@ def main():
     # sim.plot_results()
     # plot_points(nodes)
 
-    plot_throughput()
-
+    # plot_throughput()
+    plot_data_rate()
 def plot_throughput():
     plot_range = range(3, 30)
     failed_percentage = []
@@ -53,6 +53,36 @@ def plot_throughput():
     plt.ylabel('Collision percentage')
     plt.xlabel('Nodes')
     plt.title('Node collisions')
+    plt.show()
+
+def plot_data_rate():
+    plot_range = range(1, 200)
+    failed_percentage = []
+
+    freq_interval = []
+    for freq in plot_range:
+        send_freq_interval: [int, int] = [250-freq, 300-freq]
+        nodes = configure_nodes(10, ranges=[200, 200], radius_node=[50, 200], message_length=10,
+                                send_freq_interval=send_freq_interval)
+
+        print("send freq interval from " + str(send_freq_interval[0]) + " to " + str(send_freq_interval[1]))
+
+        # Simulator is started here with a large timeout
+        sim = simulator(nodes, 10000)
+        started_calc = time.time()
+        sim.begin_loop()
+        ended_calc = time.time()
+        print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
+        stats = sim.get_stats()
+        failed_percentage.append(stats['failed_percentage'])
+        freq_interval.append(250-freq)
+
+
+    plt.figure()
+    plt.plot(plot_range, failed_percentage)
+    plt.ylabel('Collision percentage')
+    plt.xlabel('Message random between (x, x+50)')
+    plt.title('Data rate observation')
     plt.show()
 
 
