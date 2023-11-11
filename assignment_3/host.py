@@ -56,7 +56,11 @@ class Host:
 
         self.message_out_for_delivery: Message = None 
         self.message_out_queue = []
-        self.message_lines = None 
+        self.message_lines = None
+
+        # DSR
+        self.passed_ids = []
+        self.known_routes = []
 
     @classmethod  # to list all instances of host class
     def get_instances(cls):
@@ -70,7 +74,7 @@ class Host:
         cls._instances -= dead
 
     # Evaluates a single round, checks if there is a message to handle else just go to the algorithm.
-    def evaluate_round(self, round_counter, canvas):
+    def evaluate_round(self, round_counter, canvas, message_id):
         
         # Evaluate our incoming messages
         messages_to_forward = []
@@ -78,9 +82,42 @@ class Host:
             message: Message
             message = self.message_queue.pop()
 
-            if message.end_destination() == self: # this is a weakref, make it a strongref by using a method call.
+            # So if the message is not a re-request and it reaches its destinations it will send a ReRequest message
+            # back to its source
+            if message.type != "ReRequest" and message.end_destination() == self and message_id not in self.passed_ids:
                 self.metrics["messages received"] += 1
-                self.incorporate_ttl(message) 
+                self.incorporate_ttl(message)
+
+                self.passed_ids.append(message_id)
+
+                request_route = message.route
+                next_hop = message.route.pop()
+                start_time = round_counter
+                end_time = start_time + 2
+                new_message = Message(self, next_hop, message.source, start_time, end_time, "rerequest",
+                                      message_id, message.route, request_route,  "ReRequest")
+                self.message_out_queue.append(new_message)
+
+            elif message.type == "ReRequest" and len(message.route) > 0:
+                if message.end_destination == self:
+                    if not any(message.source == sublist[0] for sublist in self.known_routes):
+                        self.known_routes.append([message.source, message.request_route])
+                else:
+                    next_hop = message.route.pop()
+                    start_time = round_counter
+                    end_time = start_time + 2
+                    new_message = Message(self, next_hop, message.source, start_time, end_time, "rerequest"
+                                          , message_id, message.route, message.request_route, "ReRequest")
+                    self.message_out_queue.append(new_message)
+
+            if len(message.route) == 0:
+                # Link broken???
+                continue
+
+            # if message.end_destination() == self: # this is a weakref, make it a strongref by using a method call.
+            #     self.metrics["messages received"] += 1
+            #     self.incorporate_ttl(message)
+
             else:
                 if message.ttl == 0:
                     self.metrics["messages stranded"] += 1
@@ -91,7 +128,7 @@ class Host:
         # Roll a dice to send a message
         return_message = None 
         if self.timestamp_until_sending < round_counter:
-            return_message = self.decide_to_send_message(round_counter)
+            return_message, message_id = self.decide_to_send_message(round_counter, message_id)
 
         # If we have a message to send thats not already out for delivery do that now.
         if return_message is not None and return_message.end_destination is not None:
@@ -111,6 +148,7 @@ class Host:
             message_to_forward.start_time = round_counter
             # Decrease TTL
             message_to_forward.ttl -= 1
+            message_to_forward.route.append(self)
 
             self.message_out_queue.append(message_to_forward)
 
@@ -118,7 +156,7 @@ class Host:
         self.try_to_deliver_messages(round_counter, canvas)
 
         # Done with our round except for moving, we do that later to make sure everyone is working with the same positions.
-        return
+        return message_id
 
 
     # Here we either continue moving or calculate a new move.
@@ -244,16 +282,18 @@ class Host:
 
         return
 
-    
     # Decide randomly if you will send a message
-    def decide_to_send_message(self, round_counter):
+    def decide_to_send_message(self, round_counter, message_id):
         if self.message_chance > random.random():
             end_destination = random.choice(list(self._instances))
             if end_destination() != self:
                 end_time = round_counter + random.randint(10, 15)
                 self.timestamp_until_sending = end_time
-                return Message(self, None, end_destination, round_counter, end_time, "random message")
-        return None
+                message_id += 1
+                return Message(self, None, end_destination, round_counter, end_time,
+                               "random message", message_id, [self], None, "Packet Discovery"), message_id
+
+        return None, message_id
 
 
     def is_reacheable(self, neighbor):  # check if neighbor host is reacheable

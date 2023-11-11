@@ -11,6 +11,7 @@ class simulator:
     counter: int = 0
     nodes: List[Host] = []
     timeout: int = sys.maxsize
+    message_id = 0
 
     def __init__(self, nodes, timeout, tkinter_window, canvas, node_dict):
         self.nodes = nodes
@@ -39,7 +40,7 @@ class simulator:
             # Main loop to let nodes do their thing
             node: Host
             for node in self.nodes:
-                node.evaluate_round(self.counter, self.canvas)
+                self.message_id = node.evaluate_round(self.counter, self.canvas, self.message_id)
 
             # Main loop for letting the nodes move around
             for node in self.nodes:
