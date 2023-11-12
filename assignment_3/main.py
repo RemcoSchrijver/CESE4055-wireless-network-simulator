@@ -1,67 +1,74 @@
-from host import host
-from master import master
-import matplotlib as plt
-import logging
+import random
+import time
+from typing import List
+from broadcast_routing import broadcast_routing
+from matplotlib import pyplot as plt
+import tkinter as tk
 
-'''
-def plot_host(host):
-	ax = plt.subplot()
-	nos, px, py = [], [], [] 
-	n = ['h1', 'h2', 'h3', 'h4', 'h5']
-
-	for obj in host:
-		px.append(obj.get_positionx())
-		py.append(obj.get_positiony())
-		circle = plt.Circle((obj.get_positionx(), obj.get_positiony()), obj.get_reach(), color='red',fill=False)
-		ax.add_patch(circle)
-
-	for i, txt in enumerate(n):
-		print(px[i])
-		ax.annotate(txt, (px[i], py[i]))
-
-	plt.plot(px, py, 'bo')
-	plt.xlabel('X')
-	plt.ylabel('Y')
-	plt.title("Hostesses")#Muda título do gráfico
-	plt.show()
-	#plt.savefig('Plot_host.png')
-'''
-name = 'GUSSS'
-logging.basicConfig(filename='test.log', level=logging.INFO) # testing log
-#logging.info('Hello world, this is {}'.format(h1))
-
-# Creating master
-m1 = master(id = 100)
-
-# Creating hostesses
-h1 = host(mac=1, x=1, y=0, master=m1, reach=4)
-h2 = host(mac=2, x=2, y=3, master=m1, reach=4)
-h3 = host(mac=3, x=3, y=5, master=m1, reach=4)
-h4 = host(mac=4, x=6, y=8, master=m1, reach=4)
-h5 = host(mac=10, x=5, y=7.5, master=m1, reach=4)
-#h6 = host(mac=6, x=3, y=2, master=m1, reach=4)
-
-#y = h1.get_instances()
-#plot_host(y)
-
-# ******** Starting the simulation ********
-c = 0
-logging.info(f"TIME : {c} \n")
-
-#h1.send_message("hello friend 2", 4)
-h1.send_message("hello friend 2", 3)
-#h3.send_message("hello friend", 1)
-#h3.send_message("hello friend", 1) # OK
+from host import Host
+from simulator import simulator
 
 
-while m1.get_all_requestes() != []:
-	print(f"\n***************** TIME {c+1} **************\n")
-	logging.info(f"TIME : {c+1} \n")
-	m1.send_permission()
-	
-	#if c == 15:
-	#	break
-	#c+=1
-	if c > 20:
-		break
-	c+=1
+def main():
+    print("Starting main function")
+    # Seed we need for tests of different algos
+    seed = None
+
+    # Create nodes here
+    nodes = configure_nodes(20, [500, 500], 100, broadcast_routing, 0, 0.1)
+
+    # Start tkinter
+    window = tk.Tk()
+    window.title("Routing simulator")
+    canvas = tk.Canvas(window, width=510, height=510)
+    canvas.configure(background="grey")
+    canvas.pack()
+    dot_dict = create_dots_on_canvas(nodes, canvas)
+
+    # Simulator is started here with a large timeout
+    sim = simulator(nodes, 10000, window, canvas, dot_dict)
+
+    started_calc = time.time()
+    sim.begin_loop()
+    ended_calc = time.time()
+
+    print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
+
+    sim.print_results()
+
+
+def configure_nodes(number_of_nodes: int, ranges: List[int], max_radius: int, routing_algo, movement_frequency, message_chance):
+    nodes = []
+    random.seed(10)
+
+    for id in range(number_of_nodes):
+        x = random.randint(0, ranges[0])
+        y = random.randint(0, ranges[1])
+
+        radius = random.randint(10, max_radius)
+
+        nodes.append(Host(id, x, y, radius, routing_algo, movement_frequency, message_chance))
+
+    return nodes
+
+def create_dots_on_canvas(nodes: List[Host], canvas):
+    dot_dict = {}
+    node: Host
+    for node in nodes:
+        dot_dict[node] = create_dot(node, canvas)
+
+    return dot_dict
+
+def create_dot(node: Host, canvas):
+
+    fill_color = "#{:02x}{:02x}{:02x}".format(
+        random.randint(0, 255),
+        random.randint(0, 255),
+        random.randint(0, 255)
+    )  
+
+    dot = canvas.create_oval(node.positionx-5, node.positiony-5, node.positionx+5, node.positiony+5, fill=fill_color)
+    return dot
+
+if __name__ == '__main__':
+    main()

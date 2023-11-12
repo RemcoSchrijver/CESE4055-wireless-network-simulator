@@ -62,9 +62,9 @@ class SMAC:
         # TODO: provide realistic (mininum) message durations
         self.message_durations = {
             MessageType.SYNC: 15,
-            MessageType.RTS: 10,
-            MessageType.CTS: 10,
-            MessageType.DATA: 20,
+            MessageType.RTS: 5,
+            MessageType.CTS: 5,
+            MessageType.DATA: 30,
             MessageType.ACK: 5
         }
 
@@ -112,6 +112,8 @@ class SMAC:
                     self.listen_period = int(received_message[2])
                     self.sync_sleep_wait = int(received_message[3])
                     # TODO: Update schedule table
+
+                    self.schedule_table[incoming_message.node]
 
         elif self.state == State.SYNC_SCHEDULE:
             # Sync our schedule to the one we received

@@ -31,6 +31,7 @@ class Host:
         self.positionx = x
         self.positiony = y
         self._instances.add(weakref.ref(self))
+
         self.algorithm = algorithm
         self.metrics = {"failed to deliver": 0, "successfully delivered": 0, "messages sent": 0}
         self.channels = {}
@@ -55,7 +56,7 @@ class Host:
         if len(self.message_queue) > 0:
             incoming_message = self.message_queue.pop(0)
 
-        return_message = self.algorithm.process_algorithm(self, round_counter, incoming_message)
+        return_message = self.algorithm.process_algorithm(self, round_counter, incoming_message.source)
 
         # If we have a message to send lets do that now.
         if return_message is not None:

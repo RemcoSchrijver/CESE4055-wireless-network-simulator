@@ -2,16 +2,17 @@ import math
 import sys
 import os
 import shutil
+from fileinput import close
 from typing import Dict, List, TextIO
 
 from network.host import Host
 from network.message import Message
 
-class simulator:
 
+class simulator:
     counter: int = 0
-    nodes: List[Host] = []
-    timeout: int = sys.maxsize
+    # nodes: List[Host] = []
+    # timeout: int = sys.maxsize
 
     # This is an interesting one, this dictionary keeps track for all nodes if their sending channel is clear.
     # How it does this is done because every node that decides to transmit will add their transmission time window
@@ -20,12 +21,20 @@ class simulator:
     channel_files: Dict[Host, TextIO] = {}
     channel_cleaning_evaluation: Dict[Host, int] = {}
 
-    node_channel_counter: Dict[Host, int] = {}
-    node_info_dict: Dict[Host, Dict] = {}
+    # node_channel_counter: Dict[Host, int] = {}
+    # node_info_dict: Dict[Host, Dict] = {}
 
     def __init__(self, nodes, timeout):
-        self.nodes = nodes
+        self.counter: int = 0
+        self.nodes: List[Host] = nodes
         self.timeout = timeout
+
+        # self.channels: Dict[Host, List[Message]] = {}
+        # self.channel_files: Dict[Host, TextIO] = {}
+        # self.channel_cleaning_evaluation: Dict[Host, int] = {}
+
+        self.node_channel_counter: Dict[Host, int] = {}
+        self.node_info_dict: Dict[Host, Dict] = {}
 
     def begin_loop(self):
 
@@ -35,15 +44,14 @@ class simulator:
             shutil.rmtree(output_path)
         os.mkdir("output/")
 
-
-        print("Starting simulator...")
+        print("Starting simulator... with {:d} nodes", str(len(self.nodes)))
         if len(self.nodes) <= 0:
             print('No nodes registered so simulating nothing')
             return
 
         # Register channel dictionaries and metric dictionaries
         for node in self.nodes:
-            self.channels[node] = [] 
+            self.channels[node] = []
             # Pass the channel dictionary to all nodes
             node.set_channels(self.channels)
 
@@ -54,7 +62,6 @@ class simulator:
             # Progress bar
             simulator.print_progress_bar(self.counter, self.timeout)
 
-
             # Main loop to let nodes do their thing
             node: Host
             for node in self.nodes:
@@ -64,7 +71,9 @@ class simulator:
             for node in self.nodes:
                 node_channel = self.channels[node]
                 # only deliver the message once self.counter + 1 = end_time of the message for the node.
-                message_to_deliver = [x for x in node_channel if x.end_time == self.counter + 1 and (x.destination == node.mac or x.destination == -1)]
+
+                message_to_deliver = [x for x in node_channel if
+                                      x.end_time == self.counter + 1 and (x.destination == node.mac or (x.destination == -1 and x.source != node.mac))]
 
                 # We have multiple messages delivered at the same time, will be a collision
                 if len(message_to_deliver) > 1:
@@ -74,10 +83,10 @@ class simulator:
                 # No need evaulating if there are no messages to deliver
                 if len(message_to_deliver) == 1:
                     blocking_messages = simulator.find_conflicting_messages(message_to_deliver[0], node_channel)
-                    if len(blocking_messages) > 0: 
+                    if len(blocking_messages) > 0:
                         node.metrics["failed to deliver"] = node.metrics["failed to deliver"] + 1
                         continue
-                    else: 
+                    else:
                         node.message_queue.append(message_to_deliver[0])
                         node.metrics["successfully delivered"] = node.metrics["successfully delivered"] + 1
 
@@ -86,8 +95,47 @@ class simulator:
 
             self.counter = self.counter + 1
 
+        for node in self.nodes:
+            self.channel_files[node].close()
+        # for channel_file in self.channel_files:
+        #     os.remove(channel_file)
+
         print('Done simulating, ran for %d iterations' % self.counter)
         return
+
+    def get_stats(self):
+        average_neighbors = self.get_average_neighbours()
+        total_failed = 0
+        total_successful = 0
+        total_send = 0
+
+        for node in self.nodes:
+            total_failed += node.metrics['failed to deliver']
+            total_successful += node.metrics['successfully delivered']
+            total_send += node.metrics['messages sent']-1
+
+        successful_percentage = total_successful/total_send
+        failed_percentage = total_failed/total_send
+
+        stats_sim = {'average neighbours': average_neighbors,
+                     'total_failed': total_failed,
+                     'total_successful': total_successful,
+                     'total_send': total_send,
+                     'successful_percentage': successful_percentage,
+                     'failed_percentage': failed_percentage}
+
+        print(stats_sim)
+
+        return stats_sim
+
+
+    def get_average_neighbours(self):
+        total_nodes = len(self.nodes)
+        neighbours: int = 0
+        for node in self.nodes:
+            neighbours += len(node.get_neighbors())
+
+        return neighbours / total_nodes
 
     def print_results(self):
         """Method that prints results of the simulator
@@ -95,10 +143,10 @@ class simulator:
         Goes and fetches the metric dictionaries from all nodes and prints them out.
         """
         if len(self.nodes) > 0:
-            node : Host
+            node: Host
             for node in self.nodes:
                 print(f"Node {node.mac} has the following metrics: {str(node.metrics)}")
-    
+
     @staticmethod
     def find_conflicting_messages(message: Message, message_channel: List[Message]) -> List[Message]:
         """Find all messages conflicting with this message
@@ -106,13 +154,13 @@ class simulator:
         Returns the list of messages that conflict with this message, as in the end time is later then the start time of this message
         as well as the start time being before the end time of this message.
         """
-        return  [x for x in message_channel if (x.end_time >= message.start_time and x.start_time <= message.end_time and x != message)]
-    
+        return [x for x in message_channel if
+                (x.end_time >= message.start_time and x.start_time <= message.end_time and x != message)]
+
     @staticmethod
     def print_progress_bar(counter: int, timeout: int):
         if ((counter / timeout) * 100 - math.ceil((counter / timeout)) * 100) < 0.0001:
             print(f"Progress: {format((counter / timeout) * 100, '.2f')}%\r", end="")
-
 
     def clean_channels(self, node: Host):
         """Intricate method for doing bookkeeping on the node channels, keeping calculation of conflicts relatively cheap.
@@ -142,8 +190,8 @@ class simulator:
         conflicting_messages = simulator.find_conflicting_messages(first_message, node_channel)
 
         # Checking if all messages are already evaluated, as in are there endtimes after the current time
-        safe_to_delete = True 
-        message : Message
+        safe_to_delete = True
+        message: Message
         for message in conflicting_messages:
             if (message.end_time >= self.counter):
                 safe_to_delete = False
@@ -155,5 +203,3 @@ class simulator:
             self.channel_files[node].write(f"{str(first_message)} deleted at: {self.counter} \n")
             node_channel.pop(0)
             self.clean_channels(node)
-
-

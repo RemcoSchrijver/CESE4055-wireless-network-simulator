@@ -4,41 +4,42 @@ from network.host import Host
 from network.message import Message
 
 class Aloha:
-    counter = 0
-    begin_random = 1
-    end_random = 20
-    message_send = False
-    states = ["IDLE", "SENDING"]
+    def __init__(self, message_length: int, send_freq_interval: (int, int)):
+        self.counter = 0
+        self.message_send = False
+        self.states = ["IDLE", "SENDING"]
+        self.message_length = message_length
+        self.random_interval = send_freq_interval
+        self.start_random = 0
 
-    def __init__(self):
-        pass
+        self.start_time = 0
+        self.end_time = 0
 
     def process_algorithm(self, node: Host, round_counter, incoming_message):
         message = None
 
-        if round_counter >= self.begin_random + 1:
+        if round_counter > self.start_time+1:
             self.message_send = False
 
         if incoming_message is None and self.message_send is False:
             message = self.send_message(node, round_counter)
             self.message_send = True
-        # message = Message(origin, neighbours[0], 20, 25, "hello")
+
         return message
 
     def send_message(self, node, round_counter):
         message = None
         neigbors = node.get_neighbors()
 
-        start_time = random.randint(self.begin_random, self.end_random)
-        end_time = start_time + 5
+        self.start_time = random.randint(self.start_random + self.random_interval[0], self.start_random + self.random_interval[1])
+        self.end_time = self.start_time + self.message_length
 
         if len(neigbors) > 0:
             random_neigbour = random.randint(0, len(neigbors) - 1)
             destination = neigbors[random_neigbour].mac
-            message = Message(node.mac, destination, start_time, end_time, "hello")
+            message = Message(node.mac, destination, self.start_time, self.end_time, "hello")
 
-        self.begin_random = end_time
-        self.end_random = self.begin_random + 50
+        self.start_random = self.start_time
         self.counter += 1
 
         return message

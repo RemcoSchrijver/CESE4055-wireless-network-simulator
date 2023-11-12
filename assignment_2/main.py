@@ -12,10 +12,11 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(10, ranges=[10, 10], max_radius=20)
+    nodes = configure_nodes(8, ranges=[400, 400], radius_node=[100, 200], message_length=2,
+                            send_freq_interval=[100, 200])
 
     # Simulator is started here with a large timeout
-    sim = simulator(nodes, 100000)
+    sim = simulator(nodes, 10000)
 
     started_calc = time.time()
     sim.begin_loop()
@@ -23,11 +24,70 @@ def main():
 
     print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
 
+    stats = sim.get_stats()
     sim.print_results()
     plot_points(nodes)
 
+    # plot_throughput()
+    #plot_data_rate()
+def plot_throughput():
+    plot_range = range(3, 30)
+    failed_percentage = []
 
-def configure_nodes(number_of_nodes: int, ranges: [int, int], max_radius: int):
+
+    for number_of_nodes in plot_range:
+        nodes = configure_nodes(number_of_nodes, ranges=[200, 200], radius_node=[50, 200], message_length=10,
+                                send_freq_interval=[100, 200])
+
+        # Simulator is started here with a large timeout
+        sim = simulator(nodes, 10000)
+        started_calc = time.time()
+        sim.begin_loop()
+        ended_calc = time.time()
+        print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
+        stats = sim.get_stats()
+        failed_percentage.append(stats['failed_percentage'])
+
+    plt.figure()
+    plt.plot(plot_range, failed_percentage)
+    plt.ylabel('Collision percentage')
+    plt.xlabel('Nodes')
+    plt.title('Node collisions')
+    plt.show()
+
+def plot_data_rate():
+    plot_range = range(1, 3)
+    failed_percentage = []
+
+    freq_interval = []
+    for freq in plot_range:
+        send_freq_interval: [int, int] = [250-freq, 300-freq]
+        nodes = configure_nodes(10, ranges=[200, 200], radius_node=[50, 200], message_length=10,
+                                send_freq_interval=send_freq_interval)
+
+        print("send freq interval from " + str(send_freq_interval[0]) + " to " + str(send_freq_interval[1]))
+
+        # Simulator is started here with a large timeout
+        sim = simulator(nodes, 10000)
+        started_calc = time.time()
+        sim.begin_loop()
+        ended_calc = time.time()
+        print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
+        stats = sim.get_stats()
+        failed_percentage.append(stats['failed_percentage'])
+        freq_interval.append(250-freq)
+
+
+    plt.figure()
+    plt.plot(plot_range, failed_percentage)
+    plt.ylabel('Collision percentage')
+    plt.xlabel('Message random between (x, x+50)')
+    plt.title('Data rate observation')
+    plt.show()
+
+
+def configure_nodes(number_of_nodes: int, ranges: [int, int], radius_node: [int, int],
+                    message_length: int, send_freq_interval: [int, int]):
     nodes = []
     random.seed(10)
 
@@ -35,17 +95,21 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], max_radius: int):
         x = random.randint(0, ranges[0])
         y = random.randint(0, ranges[1])
 
-        # Lowerbound radius to half the max radius for more realistic model
-        radius = random.randint(max_radius//2, max_radius)
+        minRadius: int = radius_node[0]
+        maxRadius: int = radius_node[1]
+
+        radius = random.randint(minRadius, maxRadius)
 
         nodes.append(Host(id, x, y, radius, SMAC()))
 
     return nodes
 
+
 def plot_points(nodes):
     points = []
     radius_all = []
     ids = []
+    # plt.figure(figsize=(3, 3), dpi=200)
     plt.figure()
     for node in nodes:
         x = node.get_positionx()
@@ -59,17 +123,17 @@ def plot_points(nodes):
         for (x, y), radius, id in zip(points, radius_all, ids):
             circle = plt.Circle((x, y), radius, color='blue', fill=False)
             plt.gca().add_patch(circle)
-            plt.text(x, y - 0.2 * radius, id, ha='center', va='center')
+            plt.text(x, y - 10, id, ha='center', va='center')
 
     x, y = zip(*points)
     plt.scatter(x, y, color='red', label='Points')
 
     plot_circles_around_points(points, radius_all, ids)
 
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-    plt.title('Points with Circles')
-    plt.legend()
+    plt.xlabel('X-location')
+    plt.ylabel('Y-location')
+    plt.title('Node locations')
+    # plt.legend()
     plt.axis('equal')
     plt.grid(True)
     plt.show()
