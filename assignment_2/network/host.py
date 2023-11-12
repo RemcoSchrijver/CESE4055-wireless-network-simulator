@@ -36,6 +36,7 @@ class Host:
         self.metrics = {"failed to deliver": 0, "successfully delivered": 0, "messages sent": 0}
         self.channels = {}
         self.message_queue = []
+        self.plot_schedule = list()
 
     @classmethod  # to list all instances of host class
     def get_instances(cls):
@@ -56,7 +57,7 @@ class Host:
         if len(self.message_queue) > 0:
             incoming_message = self.message_queue.pop(0)
 
-        return_message = self.algorithm.process_algorithm(self, round_counter, incoming_message.source)
+        return_message = self.algorithm.process_algorithm(self, round_counter, incoming_message)
 
         # If we have a message to send lets do that now.
         if return_message is not None:

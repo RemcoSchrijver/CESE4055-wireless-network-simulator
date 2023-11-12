@@ -27,6 +27,7 @@ def main():
     stats = sim.get_stats()
     sim.print_results()
     plot_points(nodes)
+    plot_schedule(nodes)
 
     # plot_throughput()
     #plot_data_rate()
@@ -138,6 +139,22 @@ def plot_points(nodes):
     plt.grid(True)
     plt.show()
 
+def plot_schedule(nodes):
+    label_mapping = {
+        0: 'INIT',
+        1: 'SYNC_INIT',
+        2: 'SYNC_SCHEDULE',
+        3: 'SLEEP',
+        4: 'LISTEN',
+    }
+
+    plt.figure()
+    for node in nodes:
+        plt.plot(node.plot_schedule)
+        plt.xlabel('Round')
+        plt.ylabel('State')
+        plt.title(f"Schedule of node {node.mac}")
+        plt.show()
 
 if __name__ == '__main__':
     main()

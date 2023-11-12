@@ -9,15 +9,15 @@ MEAN_WAIT = 30
 STD_WAIT = 10
 
 # SYNC init bounds (min/max uniform)
-SYNC_MIN_INIT_WAIT = 500
+SYNC_MIN_INIT_WAIT = 100
 SYNC_MAX_INIT_WAIT = 1000
 
 # SYNC schedule bounds (min/max uniform)
 SYNC_MIN_SLEEP_WAIT = 50
-SYNC_MAX_SLEEP_WAIT = 100
-SYNC_MIN_SLEEP_PERIOD = 500
-SYNC_MAX_SLEEP_PERIOD = 1000
-SYNC_MIN_LISTEN_PERIOD = 150
+SYNC_MAX_SLEEP_WAIT = 250
+SYNC_MIN_SLEEP_PERIOD = 1000
+SYNC_MAX_SLEEP_PERIOD = 1500
+SYNC_MIN_LISTEN_PERIOD = 100
 SYNC_MAX_LISTEN_PERIOD = 300
 
 class State(Enum):
@@ -55,18 +55,15 @@ class SMAC:
 
         # SYNC schedule
         self.sync_init_wait = None
-        self.sync_sleep_wait = None
-        self.listen_period = None
-        self.sleep_period = None
 
-        # TODO: provide realistic (mininum) message durations
         self.message_durations = {
-            MessageType.SYNC: 15,
+            MessageType.SYNC: 25,
             MessageType.RTS: 5,
             MessageType.CTS: 5,
             MessageType.DATA: 30,
             MessageType.ACK: 5
         }
+
 
     def process_algorithm(self, node: Host, round_counter, incoming_message):
         message = None
@@ -75,12 +72,18 @@ class SMAC:
         if incoming_message:
             received_message = incoming_message.message.split()
 
+        if self.check_for_sync_schedules(received_message, node, round_counter, incoming_message):
+            return message
+
         if self.state == State.INIT:
+            node.plot_schedule.append(0)
             # Wait for other SYNC messages
             self.sync_init_wait = round_counter + random.randint(SYNC_MIN_INIT_WAIT, SYNC_MAX_INIT_WAIT)
             self.state = State.SYNC_INIT
+            return message
 
         elif self.state == State.SYNC_INIT:
+            node.plot_schedule.append(1)
             # No SYNC from other nodes, create a schedule
             if round_counter >= self.sync_init_wait:
                 self.sync_init_wait = None
@@ -97,46 +100,62 @@ class SMAC:
                 # Update own state
                 self.state = State.SYNC_SCHEDULE
                 self.node_type = NodeType.SYNCHRONIZER
-                self.sleep_period = sleep_period
-                self.listen_period = listen_period
-                self.sync_sleep_wait = sleep_wait
+
+                schedule = {'sleep_period': sleep_period, 'listen_period': listen_period,
+                                'sync_sleep_wait': sleep_wait, 'next_listen_period': sleep_wait+sleep_period, 'next_sleep_period': sleep_wait+sleep_period+listen_period}
+
+                self.schedule_table[node.mac] = schedule
 
                 print(message)
                 return message
 
-            if received_message:
-                if received_message[0] == "SYNC": # TODO: Receiving this can always happen: merge sleep tables(?check paper)
-                    self.state = State.SYNC_SCHEDULE
-                    self.node_type = NodeType.SYNCHRONIZER
-                    self.sleep_period = int(received_message[1])
-                    self.listen_period = int(received_message[2])
-                    self.sync_sleep_wait = int(received_message[3])
-                    # TODO: Update schedule table
-
-                    self.schedule_table[incoming_message.node]
 
         elif self.state == State.SYNC_SCHEDULE:
-            # Sync our schedule to the one we received
-            if round_counter >= self.sync_sleep_wait:
-                self.sync_sleep_wait = None
-                self.next_listen_period = round_counter + self.sleep_period
+            node.plot_schedule.append(2)
+            merged_start_time = -1
+
+            for node, schedule in self.schedule_table.items():
+                if merged_start_time == -1:
+                    merged_start_time = schedule['sync_sleep_wait']
+
+                elif schedule['sync_sleep_wait'] < merged_start_time:
+                    merged_start_time = schedule['sync_sleep_wait']
+
+            if round_counter >= merged_start_time:
                 self.state = State.SLEEP
+
+            return message
 
         elif self.state == State.SLEEP:
-            if round_counter >= self.next_listen_period:
-                self.next_sleep_period = round_counter + self.listen_period
-                self.state = State.LISTEN
+            node.plot_schedule.append(3)
+            for node, schedule in self.schedule_table.items():
+                if round_counter >= schedule['next_listen_period']:
+                    self.schedule_table[node]['next_sleep_period'] = round_counter + schedule['listen_period']
+                    self.state = State.LISTEN
+
+            return message
 
         elif self.state == State.LISTEN:
-            if round_counter >= self.next_sleep_period:
-                self.next_listen_period = round_counter + self.sleep_period
-                self.state = State.SLEEP
+            node.plot_schedule.append(4)
+            active_node = False
+
+            for node, schedule in self.schedule_table.items():
+                if round_counter > schedule['next_sleep_period']:
+                    if schedule['next_listen_period'] >= schedule['next_sleep_period']:
+                        continue
+                    self.schedule_table[node]['next_listen_period'] = round_counter + schedule['sleep_period']
+                else:
+                    active_node = True
+
                 # TODO: Process buffered messages: CTS/DATA/ACK
                 # TODO: Generate new messages: RTS
 
                 # TODO: If synchronizer: prevent clock drift of followers and sync schedule
                 # TODO: If follower: update sync schedule if necessary
+            if not active_node:
+                self.state = State.SLEEP
 
+            return message
         else:
             print("Unknown state")
 
@@ -166,4 +185,29 @@ class SMAC:
     @staticmethod
     def get_random_wait():
         return round(random.gauss(MEAN_WAIT, STD_WAIT))
+
+    def check_for_sync_schedules(self, received_message, node, round_counter, incoming_message):
+        if received_message:
+            sleep_period = int(received_message[1])
+            listen_period = int(received_message[2])
+            sync_sleep_wait = int(received_message[3])
+
+            if round_counter <= sync_sleep_wait:
+                if received_message[0] == "SYNC":  # TODO: Receiving this can always happen: merge sleep tables(?check paper)
+                    if self.state == State.SYNC_INIT:
+                        self.state = State.SYNC_SCHEDULE
+
+                    self.node_type = NodeType.FOLLOWER
+
+                    schedule = {'sleep_period': sleep_period, 'listen_period': listen_period,
+                                'sync_sleep_wait': sync_sleep_wait, 'next_listen_period': sync_sleep_wait + sleep_period,
+                                'next_sleep_period': sync_sleep_wait + sleep_period + listen_period}
+
+                    self.schedule_table[incoming_message.source] = schedule
+
+                    if len(self.schedule_table) > 1:
+                        print(f"Schedules merged for node {node.mac}")
+
+                    return True
+        return False
 
