@@ -59,10 +59,10 @@ class SMAC:
         self.sync_init_wait = None
 
         self.message_durations = {
-            MessageType.SYNC: 15,
+            MessageType.SYNC: 10,
             MessageType.RTS: 1,
             MessageType.CTS: 1,
-            MessageType.DATA: 30,
+            MessageType.DATA: 10,
             MessageType.ACK: 1
         }
 
