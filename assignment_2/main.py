@@ -29,7 +29,7 @@ def main():
     plot_points(nodes)
     #plot_schedule(nodes)
 
-    # plot_throughput()
+    #plot_throughput()
     #plot_data_rate()
 def plot_throughput():
     plot_range = range(3, 30)
@@ -37,7 +37,7 @@ def plot_throughput():
 
 
     for number_of_nodes in plot_range:
-        nodes = configure_nodes(number_of_nodes, ranges=[200, 200], radius_node=[50, 200], message_length=10,
+        nodes = configure_nodes(number_of_nodes, ranges=[800, 800], radius_node=[100, 200], message_length=10,
                                 send_freq_interval=[100, 200])
 
         # Simulator is started here with a large timeout
@@ -57,12 +57,12 @@ def plot_throughput():
     plt.show()
 
 def plot_data_rate():
-    plot_range = range(1, 3)
+    plot_range = range(1,100)
     failed_percentage = []
 
     freq_interval = []
     for freq in plot_range:
-        send_freq_interval: [int, int] = [250-freq, 300-freq]
+        send_freq_interval: [int, int] = [150-freq, 250-freq]
         nodes = configure_nodes(10, ranges=[200, 200], radius_node=[50, 200], message_length=10,
                                 send_freq_interval=send_freq_interval)
 
@@ -102,7 +102,7 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], radius_node: [int,
         radius = random.randint(minRadius, maxRadius)
 
         #nodes.append(Host(id, x, y, radius, Aloha(message_length, send_freq_interval)))
-        nodes.append(Host(id, x, y, radius, SMAC()))
+        nodes.append(Host(id, x, y, radius, SMAC(send_freq_interval=send_freq_interval)))
 
     return nodes
 

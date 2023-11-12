@@ -20,8 +20,6 @@ SYNC_MAX_SLEEP_PERIOD = 2000
 SYNC_MIN_LISTEN_PERIOD = 200
 SYNC_MAX_LISTEN_PERIOD = 400
 
-NEW_MESSAGE_RATIO = 50
-
 class State(Enum):
     INIT = auto()
     SYNC_INIT = auto()
@@ -43,7 +41,7 @@ class NodeType(Enum):
 
 class SMAC:
 
-    def __init__(self):
+    def __init__(self, send_freq_interval=None):
         self.state = State.INIT
         self.node_type = NodeType.FOLLOWER
         self.next_available_round = 1
@@ -65,6 +63,10 @@ class SMAC:
             MessageType.DATA: 10,
             MessageType.ACK: 1
         }
+        if send_freq_interval is not None:
+            self.new_message_ratio = send_freq_interval[0]
+        else:
+            self.new_message_ratio = 50
 
 
     def process_algorithm(self, node: Host, round_counter, incoming_message):
@@ -154,7 +156,7 @@ class SMAC:
 
             # Generate new message by sending a RTS packet if we have nothing to do
             if not incoming_message:
-                random_message_event = random.randint(0, NEW_MESSAGE_RATIO)
+                random_message_event = random.randint(0, self.new_message_ratio)
                 if random_message_event == 0:
                     message = self.send_message(node, round_counter, MessageType.RTS, "", destination_mac=None)
                     return message
