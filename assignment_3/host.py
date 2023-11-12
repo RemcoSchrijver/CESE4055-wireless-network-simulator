@@ -87,14 +87,25 @@ class Host:
             # So if the message is not a re-request, and it reaches its destinations it will send a ReRequest message
             # back to its source
             if message.end_destination == self:
+                # If the message type was a rerequest, save the route in the known routes variable, ONly the first route
+                # of a certain id gets saved.
                 if message.type == "ReRequest" and len(message.route) > 0:
-                    if not any(message.source == sublist[0] for sublist in self.known_routes):
-                        self.known_routes.append([message.source, message.request_route])
+                    route_found = False
+                    for known_route in self.known_routes:
+                        if known_route[0] == message.source:
+                            route_found = True
 
-                elif message.type != "Known route" and message_id not in self.passed_ids and len(message.route) > 1:
+                    if not route_found:
+                        new_route = [message.source, message.request_route]
+                        self.known_routes.append(new_route)
+
+                # If a message that has been received comes in that was not a known route, send a rerequest message
+                # back with the same route it was taken
+                elif message.type != "Known route" and message_id not in self.passed_ids and len(message.route) > 0:
                     self.metrics["messages received"] += 1
                     self.incorporate_ttl(message)
                     self.passed_ids.append(message_id)
+                    print("Normal route done")
 
                     message.route.append(self)
                     request_route = message.route.copy()  # Route that is saved
@@ -108,12 +119,16 @@ class Host:
                 else:
                     if message.type == "Known route":
                         print("known route done")
+                    # else:
+                    #     print("Normal route done")
                     self.metrics["messages received"] += 1
                     self.incorporate_ttl(message)
             else:
                 if message.ttl == 0:
                     self.metrics["messages stranded"] += 1
                 else:
+                    # if message.type == "ReRequest":
+                    #     print("Rerequest")
                     self.metrics["forward-messages received"] += 1
                     messages_to_forward.append(message)
 
