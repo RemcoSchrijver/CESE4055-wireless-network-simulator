@@ -112,7 +112,7 @@ class simulator:
         for node in self.nodes:
             total_failed += node.metrics['failed to deliver']
             total_successful += node.metrics['successfully delivered']
-            total_send += node.metrics['messages sent']-1
+            total_send += node.metrics['messages sent']
 
         successful_percentage = total_successful/total_send
         failed_percentage = total_failed/total_send

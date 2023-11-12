@@ -224,7 +224,7 @@ class SMAC:
 
     @staticmethod
     def get_random_wait():
-        return round(random.gauss(MEAN_WAIT, STD_WAIT))
+        return abs(round(random.gauss(MEAN_WAIT, STD_WAIT)))
 
     def check_for_sync_schedules(self, received_message, node, round_counter, incoming_message):
         if incoming_message:

@@ -12,7 +12,7 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(8, ranges=[400, 400], radius_node=[100, 200], message_length=2,
+    nodes = configure_nodes(8, ranges=[800, 800], radius_node=[100, 200], message_length=2,
                             send_freq_interval=[100, 200])
 
     # Simulator is started here with a large timeout
@@ -101,8 +101,8 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], radius_node: [int,
 
         radius = random.randint(minRadius, maxRadius)
 
+        #nodes.append(Host(id, x, y, radius, Aloha(message_length, send_freq_interval)))
         nodes.append(Host(id, x, y, radius, SMAC()))
-
     return nodes
 
 
