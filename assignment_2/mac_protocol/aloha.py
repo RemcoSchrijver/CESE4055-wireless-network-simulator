@@ -1,8 +1,7 @@
 import random
 
-from host import Host
-from message import Message
-
+from network.host import Host
+from network.message import Message
 
 class Aloha:
     def __init__(self, message_length: int, send_freq_interval: (int, int)):

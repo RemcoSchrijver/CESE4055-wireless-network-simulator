@@ -3,7 +3,8 @@ import weakref
 import math
 import logging
 from typing import Any, Callable, Dict, List
-from message import Message
+
+from network.message import Message
 
 
 class Host:
@@ -35,6 +36,7 @@ class Host:
         self.metrics = {"failed to deliver": 0, "successfully delivered": 0, "messages sent": 0}
         self.channels = {}
         self.message_queue = []
+        self.plot_schedule = list()
 
     @classmethod  # to list all instances of host class
     def get_instances(cls):

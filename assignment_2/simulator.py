@@ -5,8 +5,8 @@ import shutil
 from fileinput import close
 from typing import Dict, List, TextIO
 
-from host import Host
-from message import Message
+from network.host import Host
+from network.message import Message
 
 
 class simulator:
@@ -71,8 +71,9 @@ class simulator:
             for node in self.nodes:
                 node_channel = self.channels[node]
                 # only deliver the message once self.counter + 1 = end_time of the message for the node.
+
                 message_to_deliver = [x for x in node_channel if
-                                      x.end_time == self.counter + 1 and x.destination == node.mac]
+                                      x.end_time == self.counter + 1 and (x.destination == node.mac or (x.destination == -1 and x.source != node.mac))]
 
                 # We have multiple messages delivered at the same time, will be a collision
                 if len(message_to_deliver) > 1:

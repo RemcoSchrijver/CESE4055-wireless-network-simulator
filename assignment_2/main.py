@@ -2,8 +2,9 @@ import random
 import time
 from matplotlib import pyplot as plt
 
-from aloha_algorithm import Aloha
-from host import Host
+from mac_protocol.aloha import Aloha
+from mac_protocol.smac import SMAC
+from network.host import Host
 from simulator import simulator
 
 
@@ -11,7 +12,7 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(10, ranges=[200, 200], radius_node=[70, 200], message_length=2,
+    nodes = configure_nodes(8, ranges=[400, 400], radius_node=[100, 200], message_length=2,
                             send_freq_interval=[100, 200])
 
     # Simulator is started here with a large timeout
@@ -24,12 +25,12 @@ def main():
     print(f"Calculation time {format(ended_calc - started_calc, '.4f')}")
 
     stats = sim.get_stats()
-    # sim.print_results()
-    # sim.plot_results()
-    # plot_points(nodes)
+    sim.print_results()
+    plot_points(nodes)
+    #plot_schedule(nodes)
 
     # plot_throughput()
-    plot_data_rate()
+    #plot_data_rate()
 def plot_throughput():
     plot_range = range(3, 30)
     failed_percentage = []
@@ -56,7 +57,7 @@ def plot_throughput():
     plt.show()
 
 def plot_data_rate():
-    plot_range = range(1, 200)
+    plot_range = range(1, 3)
     failed_percentage = []
 
     freq_interval = []
@@ -100,7 +101,7 @@ def configure_nodes(number_of_nodes: int, ranges: [int, int], radius_node: [int,
 
         radius = random.randint(minRadius, maxRadius)
 
-        nodes.append(Host(id, x, y, radius, Aloha(message_length, send_freq_interval)))
+        nodes.append(Host(id, x, y, radius, SMAC()))
 
     return nodes
 
@@ -138,6 +139,22 @@ def plot_points(nodes):
     plt.grid(True)
     plt.show()
 
+def plot_schedule(nodes):
+    label_mapping = {
+        0: 'INIT',
+        1: 'SYNC_INIT',
+        2: 'SYNC_SCHEDULE',
+        3: 'SLEEP',
+        4: 'LISTEN',
+    }
+
+    plt.figure()
+    for node in nodes:
+        plt.plot(node.plot_schedule)
+        plt.xlabel('Round')
+        plt.ylabel('State')
+        plt.title(f"Schedule of node {node.mac}")
+        plt.show()
 
 if __name__ == '__main__':
     main()
