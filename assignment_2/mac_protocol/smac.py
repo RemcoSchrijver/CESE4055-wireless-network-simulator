@@ -16,9 +16,11 @@ SYNC_MAX_INIT_WAIT = 1000
 SYNC_MIN_SLEEP_WAIT = 50
 SYNC_MAX_SLEEP_WAIT = 250
 SYNC_MIN_SLEEP_PERIOD = 1000
-SYNC_MAX_SLEEP_PERIOD = 1500
-SYNC_MIN_LISTEN_PERIOD = 100
-SYNC_MAX_LISTEN_PERIOD = 300
+SYNC_MAX_SLEEP_PERIOD = 2000
+SYNC_MIN_LISTEN_PERIOD = 200
+SYNC_MAX_LISTEN_PERIOD = 400
+
+NEW_MESSAGE_RATIO = 50
 
 class State(Enum):
     INIT = auto()
@@ -57,11 +59,11 @@ class SMAC:
         self.sync_init_wait = None
 
         self.message_durations = {
-            MessageType.SYNC: 25,
-            MessageType.RTS: 5,
-            MessageType.CTS: 5,
+            MessageType.SYNC: 15,
+            MessageType.RTS: 1,
+            MessageType.CTS: 1,
             MessageType.DATA: 30,
-            MessageType.ACK: 5
+            MessageType.ACK: 1
         }
 
 
@@ -114,7 +116,7 @@ class SMAC:
             node.plot_schedule.append(2)
             merged_start_time = -1
 
-            for node, schedule in self.schedule_table.items():
+            for key, schedule in self.schedule_table.items():
                 if merged_start_time == -1:
                     merged_start_time = schedule['sync_sleep_wait']
 
@@ -128,9 +130,9 @@ class SMAC:
 
         elif self.state == State.SLEEP:
             node.plot_schedule.append(3)
-            for node, schedule in self.schedule_table.items():
+            for key, schedule in self.schedule_table.items():
                 if round_counter >= schedule['next_listen_period']:
-                    self.schedule_table[node]['next_sleep_period'] = round_counter + schedule['listen_period']
+                    self.schedule_table[key]['next_sleep_period'] = round_counter + schedule['listen_period']
                     self.state = State.LISTEN
 
             return message
@@ -139,21 +141,41 @@ class SMAC:
             node.plot_schedule.append(4)
             active_node = False
 
-            for node, schedule in self.schedule_table.items():
+            for key, schedule in self.schedule_table.items():
                 if round_counter > schedule['next_sleep_period']:
                     if schedule['next_listen_period'] >= schedule['next_sleep_period']:
                         continue
-                    self.schedule_table[node]['next_listen_period'] = round_counter + schedule['sleep_period']
+                    self.schedule_table[key]['next_listen_period'] = round_counter + schedule['sleep_period']
                 else:
                     active_node = True
 
-                # TODO: Process buffered messages: CTS/DATA/ACK
-                # TODO: Generate new messages: RTS
-
-                # TODO: If synchronizer: prevent clock drift of followers and sync schedule
-                # TODO: If follower: update sync schedule if necessary
             if not active_node:
                 self.state = State.SLEEP
+
+            # Generate new message by sending a RTS packet if we have nothing to do
+            if not incoming_message:
+                random_message_event = random.randint(0, NEW_MESSAGE_RATIO)
+                if random_message_event == 0:
+                    message = self.send_message(node, round_counter, MessageType.RTS, "", destination_mac=None)
+                    return message
+
+            # Check for RTS packet
+            if incoming_message:
+                if received_message[0] == "RTS":
+                    message = self.send_message(node, round_counter, MessageType.CTS, "", destination_mac=incoming_message.source)
+                    return message
+
+            # Check for CTS packet
+            if incoming_message:
+                if received_message[0] == "CTS":
+                    message = self.send_message(node, round_counter, MessageType.DATA, "RANDOM BINARY DATA", destination_mac=incoming_message.source)
+                    return message
+
+            # Check for DATA packet
+            if incoming_message:
+                if received_message[0] == "DATA":
+                    message = self.send_message(node, round_counter, MessageType.ACK, "", destination_mac=incoming_message.source)
+                    return message
 
             return message
         else:
@@ -161,13 +183,16 @@ class SMAC:
 
         return message
 
-    def send_message(self, node: Host, round_counter: int,  message_type: MessageType, payload: str):
+    def send_message(self, node: Host, round_counter: int,  message_type: MessageType, payload: str, destination_mac=None):
         message = None
         neighbors = node.get_neighbors()
 
+        if self.next_available_round < round_counter:
+            self.next_available_round = round_counter
+
         # Simulate random processing time
         random_wait = self.get_random_wait()
-        start_time = random.randint(round_counter, round_counter + random_wait)
+        start_time = random.randint(self.next_available_round, self.next_available_round + random_wait)
 
         # Add transmission time of the message
         end_time = start_time + self.message_durations[message_type]
@@ -176,6 +201,21 @@ class SMAC:
             # Broadcast SYNC to all neighbours
             if len(neighbors) > 0:
                 message = Message(node.mac, -1, start_time, end_time, f"{message_type.name} {payload}")
+        elif message_type == MessageType.RTS:
+            if round_counter >= self.next_available_round:
+                if len(neighbors) > 0:
+                    random_neighbour = random.randint(0, len(neighbors) - 1)
+                    destination = neighbors[random_neighbour].mac
+                    message = Message(node.mac, destination, start_time, end_time, f"{message_type.name} {payload}")
+        elif message_type == MessageType.CTS:
+            if round_counter >= self.next_available_round:
+                message = Message(node.mac, destination_mac, start_time, end_time, f"{message_type.name} {payload}")
+        elif message_type == MessageType.DATA:
+            if round_counter >= self.next_available_round:
+                message = Message(node.mac, destination_mac, start_time, end_time, f"{message_type.name} {payload}")
+        elif message_type == MessageType.ACK:
+            if round_counter >= self.next_available_round:
+                message = Message(node.mac, destination_mac, start_time, end_time, f"{message_type.name} {payload}")
 
         # Set next available round to the endtime of the current transmission
         self.next_available_round = end_time
@@ -187,27 +227,28 @@ class SMAC:
         return round(random.gauss(MEAN_WAIT, STD_WAIT))
 
     def check_for_sync_schedules(self, received_message, node, round_counter, incoming_message):
-        if received_message:
-            sleep_period = int(received_message[1])
-            listen_period = int(received_message[2])
-            sync_sleep_wait = int(received_message[3])
+        if incoming_message:
+            if received_message[0] == "SYNC":
+                sleep_period = int(received_message[1])
+                listen_period = int(received_message[2])
+                sync_sleep_wait = int(received_message[3])
 
-            if round_counter <= sync_sleep_wait:
-                if received_message[0] == "SYNC":  # TODO: Receiving this can always happen: merge sleep tables(?check paper)
-                    if self.state == State.SYNC_INIT:
-                        self.state = State.SYNC_SCHEDULE
+                if round_counter <= sync_sleep_wait:
 
-                    self.node_type = NodeType.FOLLOWER
+                        if self.state == State.SYNC_INIT:
+                            self.state = State.SYNC_SCHEDULE
 
-                    schedule = {'sleep_period': sleep_period, 'listen_period': listen_period,
-                                'sync_sleep_wait': sync_sleep_wait, 'next_listen_period': sync_sleep_wait + sleep_period,
-                                'next_sleep_period': sync_sleep_wait + sleep_period + listen_period}
+                        self.node_type = NodeType.FOLLOWER
 
-                    self.schedule_table[incoming_message.source] = schedule
+                        schedule = {'sleep_period': sleep_period, 'listen_period': listen_period,
+                                    'sync_sleep_wait': sync_sleep_wait, 'next_listen_period': sync_sleep_wait + sleep_period,
+                                    'next_sleep_period': sync_sleep_wait + sleep_period + listen_period}
 
-                    if len(self.schedule_table) > 1:
-                        print(f"Schedules merged for node {node.mac}")
+                        self.schedule_table[incoming_message.source] = schedule
 
-                    return True
+                        if len(self.schedule_table) > 1:
+                            print(f"Schedules merged for node {node.mac}")
+
+                        return True
         return False
 

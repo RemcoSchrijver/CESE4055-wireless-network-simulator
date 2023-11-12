@@ -27,7 +27,7 @@ def main():
     stats = sim.get_stats()
     sim.print_results()
     plot_points(nodes)
-    plot_schedule(nodes)
+    #plot_schedule(nodes)
 
     # plot_throughput()
     #plot_data_rate()
