@@ -1,6 +1,8 @@
 import random
 import time
 from typing import List
+
+from assignment_3.dsr_routing import dsr_routing
 from broadcast_routing import broadcast_routing
 from matplotlib import pyplot as plt
 import tkinter as tk
@@ -13,9 +15,10 @@ def main():
     print("Starting main function")
     # Seed we need for tests of different algos
     seed = None
-
+    algorithm = dsr_routing
+    # algorithm = broadcast_routing
     # Create nodes here
-    nodes = configure_nodes(7, [500, 500], 300, broadcast_routing, 0, 0.01)
+    nodes = configure_nodes(10, [250, 250], 150, algorithm, 0.2, 0.5)
 
     # Start tkinter
     window = tk.Tk()
@@ -26,7 +29,7 @@ def main():
     dot_dict = create_dots_on_canvas(nodes, canvas)
 
     # Simulator is started here with a large timeout
-    sim = simulator(nodes, 100000, window, canvas, dot_dict)
+    sim = simulator(nodes, 10000, window, canvas, dot_dict)
 
     started_calc = time.time()
     sim.begin_loop()
@@ -45,7 +48,8 @@ def configure_nodes(number_of_nodes: int, ranges: List[int], max_radius: int, ro
         x = random.randint(0, ranges[0])
         y = random.randint(0, ranges[1])
 
-        radius = random.randint(10, max_radius)
+        # radius = random.randint(10, max_radius)
+        radius = max_radius
 
         nodes.append(Host(id, x, y, radius, routing_algo, movement_frequency, message_chance))
 
