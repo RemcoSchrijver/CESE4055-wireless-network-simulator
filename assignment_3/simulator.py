@@ -6,8 +6,8 @@ from typing import Dict, List, TextIO
 from host import Host
 from message import Message
 
-class simulator:
 
+class simulator:
     counter: int = 0
     nodes: List[Host] = []
     timeout: int = sys.maxsize
@@ -22,10 +22,9 @@ class simulator:
         self.message_line_dict = {}
         node: Host
         for node in nodes:
-            self.message_line_dict[node] = {} 
+            self.message_line_dict[node] = {}
 
     def begin_loop(self):
-        
 
         print("Starting simulator...")
         if len(self.nodes) <= 0:
@@ -35,7 +34,6 @@ class simulator:
         while self.counter < self.timeout:
             # Progress bar
             simulator.print_progress_bar(self.counter, self.timeout)
-
 
             # Main loop to let nodes do their thing
             node: Host
@@ -47,18 +45,13 @@ class simulator:
                 node.evaluate_moving()
                 self.canvas.move(self.node_dict[node], node.dx, node.dy)
 
-            
             self.tkinter_window.update_idletasks()
             self.tkinter_window.update()
-            
 
             self.counter = self.counter + 1
 
         print('Done simulating, ran for %d iterations' % self.counter)
         return
-
-
-
 
     def print_results(self):
         """Method that prints results of the simulator
@@ -66,12 +59,11 @@ class simulator:
         Goes and fetches the metric dictionaries from all nodes and prints them out.
         """
         if len(self.nodes) > 0:
-            node : Host
+            node: Host
             for node in self.nodes:
                 print(f"Node {node.mac} has the following metrics: {str(node.metrics)}")
-    
+
     @staticmethod
     def print_progress_bar(counter: int, timeout: int):
         if ((counter / timeout) * 100 - math.ceil((counter / timeout)) * 100) < 0.0001:
             print(f"Progress: {format((counter / timeout) * 100, '.2f')}%\r", end="")
-
