@@ -3,6 +3,8 @@ import weakref
 import math
 import random
 from typing import Any, Callable, Dict, List
+
+from assignment_3.dsr_routing import dsr_routing
 from message import Message
 
 
@@ -82,42 +84,32 @@ class Host:
             message: Message
             message = self.message_queue.pop()
 
-            # So if the message is not a re-request and it reaches its destinations it will send a ReRequest message
+            # So if the message is not a re-request, and it reaches its destinations it will send a ReRequest message
             # back to its source
-            if message.type != "ReRequest" and message.end_destination() == self and message_id not in self.passed_ids:
-                self.metrics["messages received"] += 1
-                self.incorporate_ttl(message)
-
-                self.passed_ids.append(message_id)
-
-                request_route = message.route
-                next_hop = message.route.pop()
-                start_time = round_counter
-                end_time = start_time + 2
-                new_message = Message(self, next_hop, message.source, start_time, end_time, "rerequest",
-                                      message_id, message.route, request_route,  "ReRequest")
-                self.message_out_queue.append(new_message)
-
-            elif message.type == "ReRequest" and len(message.route) > 0:
-                if message.end_destination == self:
+            if message.end_destination == self:
+                if message.type == "ReRequest" and len(message.route) > 0:
                     if not any(message.source == sublist[0] for sublist in self.known_routes):
                         self.known_routes.append([message.source, message.request_route])
-                else:
+
+                elif message.type != "Known route" and message_id not in self.passed_ids and len(message.route) > 1:
+                    self.metrics["messages received"] += 1
+                    self.incorporate_ttl(message)
+                    self.passed_ids.append(message_id)
+
+                    message.route.append(self)
+                    request_route = message.route.copy()  # Route that is saved
+                    message.route.pop()
                     next_hop = message.route.pop()
                     start_time = round_counter
                     end_time = start_time + 2
-                    new_message = Message(self, next_hop, message.source, start_time, end_time, "rerequest"
-                                          , message_id, message.route, message.request_route, "ReRequest")
-                    self.message_out_queue.append(new_message)
-
-            if len(message.route) == 0:
-                # Link broken???
-                continue
-
-            # if message.end_destination() == self: # this is a weakref, make it a strongref by using a method call.
-            #     self.metrics["messages received"] += 1
-            #     self.incorporate_ttl(message)
-
+                    new_message = Message(self, [next_hop], message.source, start_time, end_time, "rerequest",
+                    message_id, message.route, request_route, "ReRequest")
+                    self.message_out_for_delivery = new_message
+                else:
+                    if message.type == "Known route":
+                        print("known route done")
+                    self.metrics["messages received"] += 1
+                    self.incorporate_ttl(message)
             else:
                 if message.ttl == 0:
                     self.metrics["messages stranded"] += 1
@@ -199,11 +191,12 @@ class Host:
             self.message_out_for_delivery = self.message_out_queue.pop() 
             self.message_out_for_delivery.end_time = round_counter + self.message_out_for_delivery.end_time - self.message_out_for_delivery.start_time
             self.message_out_for_delivery.start_time = round_counter
-            self.message_out_for_delivery = self.routing_algorithm(neighbors_in_reach, self.message_out_for_delivery)
+            # self.message_out_for_delivery = self.routing_algorithm(neighbors_in_reach, self.message_out_for_delivery)
+            self.message_out_for_delivery = dsr_routing(neighbors_in_reach, self.message_out_for_delivery)
 
         if self.message_out_for_delivery is not None:
             neighbors_in_reach = self.get_neighbors()
-            message : Message
+            message: Message
 
             message = self.message_out_for_delivery
             # There are messages to try to deliver
@@ -285,13 +278,22 @@ class Host:
     # Decide randomly if you will send a message
     def decide_to_send_message(self, round_counter, message_id):
         if self.message_chance > random.random():
-            end_destination = random.choice(list(self._instances))
-            if end_destination() != self:
+            end_destination = random.choice(list(self._instances))()
+            if end_destination != self:
                 end_time = round_counter + random.randint(10, 15)
                 self.timestamp_until_sending = end_time
                 message_id += 1
+                for known_route in self.known_routes:
+                    if known_route[0] == end_destination and len(known_route[1]) != 0:
+                        # own_host = known_route[1][0]
+                        destination = known_route[1].pop(0)
+                        return Message(self, destination, end_destination, round_counter, end_time,
+                               "random message", message_id, [], None, "Known route"), message_id
+
+
+
                 return Message(self, None, end_destination, round_counter, end_time,
-                               "random message", message_id, [self], None, "Packet Discovery"), message_id
+                               "random message", message_id, [], None, "Packet Discovery"), message_id
 
         return None, message_id
 
