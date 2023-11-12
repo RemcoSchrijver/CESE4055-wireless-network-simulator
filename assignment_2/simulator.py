@@ -114,8 +114,12 @@ class simulator:
             total_successful += node.metrics['successfully delivered']
             total_send += node.metrics['messages sent']
 
-        successful_percentage = total_successful/total_send
-        failed_percentage = total_failed/total_send
+        if total_send == 0:
+            successful_percentage = 0
+            failed_percentage = 0
+        else:
+            successful_percentage = total_successful/total_send
+            failed_percentage = total_failed/total_send
 
         stats_sim = {'average neighbours': average_neighbors,
                      'total_failed': total_failed,

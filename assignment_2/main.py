@@ -12,7 +12,7 @@ def main():
     print("Starting main function")
 
     # Create nodes here
-    nodes = configure_nodes(8, ranges=[800, 800], radius_node=[100, 200], message_length=2,
+    nodes = configure_nodes(12, ranges=[800, 800], radius_node=[100, 200], message_length=2,
                             send_freq_interval=[100, 200])
 
     # Simulator is started here with a large timeout
